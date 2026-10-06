@@ -26,11 +26,17 @@ import com.akrishna87.budgettracker.ui.bills.BillsViewModel
 import com.akrishna87.budgettracker.ui.components.BrandTopBar
 import com.akrishna87.budgettracker.ui.dashboard.DashboardScreen
 import com.akrishna87.budgettracker.ui.dashboard.DashboardViewModel
+import com.akrishna87.budgettracker.ui.debts.DebtsScreen
+import com.akrishna87.budgettracker.ui.debts.DebtsViewModel
+import com.akrishna87.budgettracker.ui.goals.GoalsScreen
+import com.akrishna87.budgettracker.ui.goals.GoalsViewModel
 import com.akrishna87.budgettracker.ui.history.HistoryScreen
 import com.akrishna87.budgettracker.ui.history.HistoryViewModel
 import com.akrishna87.budgettracker.ui.settings.SettingsScreen
 import com.akrishna87.budgettracker.ui.settings.SettingsViewModel
 import com.akrishna87.budgettracker.ui.theme.Accent
+
+private val secondaryScreens = listOf(Screen.Debts, Screen.Goals)
 
 @Composable
 fun BudgetNavHost(factory: BudgetViewModelFactory) {
@@ -38,34 +44,42 @@ fun BudgetNavHost(factory: BudgetViewModelFactory) {
     val addTransactionViewModel: AddTransactionViewModel = viewModel(factory = factory)
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = backStackEntry?.destination
-    val currentTitle = Screen.bottomNavItems
+    val isOnBottomNavRoute = Screen.bottomNavItems.any { currentDestination?.hierarchy?.any { d -> d.route == it.route } == true }
+    val currentTitle = (Screen.bottomNavItems + secondaryScreens)
         .firstOrNull { screen -> currentDestination?.hierarchy?.any { it.route == screen.route } == true }
         ?.label ?: Screen.Dashboard.label
 
     Scaffold(
-        topBar = { BrandTopBar(title = currentTitle) },
+        topBar = {
+            BrandTopBar(
+                title = currentTitle,
+                onBack = if (isOnBottomNavRoute) null else navController::popBackStack
+            )
+        },
         bottomBar = {
-            NavigationBar {
-                Screen.bottomNavItems.forEach { screen ->
-                    val selected = currentDestination?.hierarchy?.any { it.route == screen.route } == true
-                    NavigationBarItem(
-                        selected = selected,
-                        onClick = {
-                            if (screen == Screen.Add) addTransactionViewModel.startNew()
-                            navController.navigate(screen.route) {
-                                popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                                launchSingleTop = true
-                                restoreState = true
-                            }
-                        },
-                        icon = { Icon(screen.icon, contentDescription = screen.label) },
-                        label = { Text(screen.label) },
-                        colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = Accent,
-                            selectedTextColor = Accent,
-                            indicatorColor = Accent.copy(alpha = 0.16f)
+            if (isOnBottomNavRoute) {
+                NavigationBar {
+                    Screen.bottomNavItems.forEach { screen ->
+                        val selected = currentDestination?.hierarchy?.any { it.route == screen.route } == true
+                        NavigationBarItem(
+                            selected = selected,
+                            onClick = {
+                                if (screen == Screen.Add) addTransactionViewModel.startNew()
+                                navController.navigate(screen.route) {
+                                    popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
+                            },
+                            icon = { Icon(screen.icon, contentDescription = screen.label) },
+                            label = { Text(screen.label) },
+                            colors = NavigationBarItemDefaults.colors(
+                                selectedIconColor = Accent,
+                                selectedTextColor = Accent,
+                                indicatorColor = Accent.copy(alpha = 0.16f)
+                            )
                         )
-                    )
+                    }
                 }
             }
         }
@@ -77,7 +91,11 @@ fun BudgetNavHost(factory: BudgetViewModelFactory) {
         ) {
             composable(Screen.Dashboard.route) {
                 val viewModel: DashboardViewModel = viewModel(factory = factory)
-                DashboardScreen(viewModel)
+                DashboardScreen(
+                    viewModel = viewModel,
+                    onOpenDebts = { navController.navigate(Screen.Debts.route) },
+                    onOpenGoals = { navController.navigate(Screen.Goals.route) }
+                )
             }
             composable(Screen.Add.route) {
                 AddTransactionScreen(
@@ -109,6 +127,14 @@ fun BudgetNavHost(factory: BudgetViewModelFactory) {
             composable(Screen.Settings.route) {
                 val viewModel: SettingsViewModel = viewModel(factory = factory)
                 SettingsScreen(viewModel)
+            }
+            composable(Screen.Debts.route) {
+                val viewModel: DebtsViewModel = viewModel(factory = factory)
+                DebtsScreen(viewModel)
+            }
+            composable(Screen.Goals.route) {
+                val viewModel: GoalsViewModel = viewModel(factory = factory)
+                GoalsScreen(viewModel)
             }
         }
     }

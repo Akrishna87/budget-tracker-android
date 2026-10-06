@@ -1,5 +1,6 @@
 package com.akrishna87.budgettracker.ui.dashboard
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -14,12 +15,12 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import com.akrishna87.budgettracker.ui.components.ElevatedPanel
+import androidx.compose.material.icons.Icons
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
-import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.runtime.Composable
@@ -41,7 +42,11 @@ import com.akrishna87.budgettracker.util.monthLabel
 import com.akrishna87.budgettracker.util.shiftMonthKey
 
 @Composable
-fun DashboardScreen(viewModel: DashboardViewModel) {
+fun DashboardScreen(
+    viewModel: DashboardViewModel,
+    onOpenDebts: () -> Unit,
+    onOpenGoals: () -> Unit
+) {
     val state by viewModel.uiState.collectAsState()
 
     LazyColumn(
@@ -71,6 +76,27 @@ fun DashboardScreen(viewModel: DashboardViewModel) {
                 onPrevMonth = { viewModel.selectMonth(shiftMonthKey(state.selectedMonth, -1)) },
                 onNextMonth = { viewModel.selectMonth(shiftMonthKey(state.selectedMonth, 1)) }
             )
+        }
+
+        item {
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                ShortcutCard(
+                    emoji = "💳",
+                    title = "Debts",
+                    subtitle = if (state.totalOutstandingDebt > 0) formatMoney(state.totalOutstandingDebt) + " owed" else "None tracked",
+                    tint = Danger,
+                    onClick = onOpenDebts,
+                    modifier = Modifier.weight(1f)
+                )
+                ShortcutCard(
+                    emoji = "🎯",
+                    title = "Goals",
+                    subtitle = if (state.savingsGoalsCount > 0) formatMoney(state.totalSaved) + " saved" else "None yet",
+                    tint = Income,
+                    onClick = onOpenGoals,
+                    modifier = Modifier.weight(1f)
+                )
+            }
         }
 
         item {
@@ -232,5 +258,29 @@ private fun CategoryBudgetRow(entry: CategorySpend) {
             color = barColor,
             trackColor = SurfaceWell
         )
+    }
+}
+
+@Composable
+private fun ShortcutCard(
+    emoji: String,
+    title: String,
+    subtitle: String,
+    tint: androidx.compose.ui.graphics.Color,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    ElevatedPanel(modifier = modifier.clickable(onClick = onClick), contentPadding = 14) {
+        IconBadge(emoji = emoji, tint = tint, small = true)
+        Spacer(Modifier.height(8.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(title, fontWeight = FontWeight.SemiBold)
+            Icon(Icons.Filled.ChevronRight, contentDescription = null, tint = Muted)
+        }
+        Text(subtitle, color = Muted, style = MaterialTheme.typography.bodyMedium)
     }
 }

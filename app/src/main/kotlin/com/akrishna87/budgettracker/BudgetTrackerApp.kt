@@ -19,7 +19,13 @@ class BudgetTrackerApp : Application() {
     override fun onCreate() {
         super.onCreate()
         val database = AppDatabase.getInstance(this)
-        repository = BudgetRepository(database.categoryDao(), database.transactionDao(), database.recurringBillDao())
+        repository = BudgetRepository(
+            database.categoryDao(),
+            database.transactionDao(),
+            database.recurringBillDao(),
+            database.debtAccountDao(),
+            database.savingsGoalDao()
+        )
 
         createBillReminderChannel(this)
         scheduleBillReminders()

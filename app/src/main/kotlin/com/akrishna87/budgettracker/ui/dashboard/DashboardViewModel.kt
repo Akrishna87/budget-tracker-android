@@ -28,7 +28,10 @@ data class DashboardUiState(
     val totalExpense: Double = 0.0,
     val categorySpend: List<CategorySpend> = emptyList(),
     val mostRecentExpense: TransactionEntity? = null,
-    val justRepeatedId: String? = null
+    val justRepeatedId: String? = null,
+    val totalOutstandingDebt: Double = 0.0,
+    val savingsGoalsCount: Int = 0,
+    val totalSaved: Double = 0.0
 ) {
     val net: Double get() = totalIncome - totalExpense
 }
@@ -69,6 +72,10 @@ class DashboardViewModel(private val repository: BudgetRepository) : ViewModel()
             mostRecentExpense = mostRecent,
             justRepeatedId = repeatedId
         )
+    }.combine(repository.observeDebts()) { state, debts ->
+        state.copy(totalOutstandingDebt = debts.sumOf { it.outstandingAmount })
+    }.combine(repository.observeSavingsGoals()) { state, goals ->
+        state.copy(savingsGoalsCount = goals.size, totalSaved = goals.sumOf { it.savedAmount })
     }.stateIn(
         scope = viewModelScope,
         started = kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(5000),

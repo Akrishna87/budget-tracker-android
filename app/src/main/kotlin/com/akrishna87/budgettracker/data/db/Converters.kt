@@ -8,4 +8,10 @@ class Converters {
 
     @TypeConverter
     fun toTransactionType(value: String): TransactionType = TransactionType.valueOf(value)
+
+    @TypeConverter
+    fun fromDebtType(type: DebtType): String = type.name
+
+    @TypeConverter
+    fun toDebtType(value: String): DebtType = DebtType.valueOf(value)
 }

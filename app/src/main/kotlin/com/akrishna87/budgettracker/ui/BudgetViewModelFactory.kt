@@ -6,6 +6,8 @@ import com.akrishna87.budgettracker.data.repository.BudgetRepository
 import com.akrishna87.budgettracker.ui.addtransaction.AddTransactionViewModel
 import com.akrishna87.budgettracker.ui.bills.BillsViewModel
 import com.akrishna87.budgettracker.ui.dashboard.DashboardViewModel
+import com.akrishna87.budgettracker.ui.debts.DebtsViewModel
+import com.akrishna87.budgettracker.ui.goals.GoalsViewModel
 import com.akrishna87.budgettracker.ui.history.HistoryViewModel
 import com.akrishna87.budgettracker.ui.settings.SettingsViewModel
 
@@ -23,6 +25,10 @@ class BudgetViewModelFactory(private val repository: BudgetRepository) : ViewMod
                 SettingsViewModel(repository) as T
             modelClass.isAssignableFrom(BillsViewModel::class.java) ->
                 BillsViewModel(repository) as T
+            modelClass.isAssignableFrom(DebtsViewModel::class.java) ->
+                DebtsViewModel(repository) as T
+            modelClass.isAssignableFrom(GoalsViewModel::class.java) ->
+                GoalsViewModel(repository) as T
             else -> throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
         }
     }
