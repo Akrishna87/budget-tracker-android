@@ -19,14 +19,20 @@ Not yet built (planned next stages): recurring bills + due notifications,
 loans/credit cards with outstanding-balance tracking, savings goals,
 trend analytics, a home-screen quick-add widget, and biometric/PIN lock.
 
-## Building
+## Installing the latest build
 
-This repo has no committed APK — GitHub Actions builds one automatically
-on every push (see the **Actions** tab, or the badge/link in this repo's
-latest workflow run) and uploads it as a downloadable artifact
-(`budget-tracker-debug-apk`). Download, unzip, and install the `.apk` on
-an Android device with "install from unknown sources" allowed for your
-file manager/browser.
+**Direct download (recommended):** every push to `main` updates the
+[latest debug build release](https://github.com/Akrishna87/budget-tracker-android/releases/tag/latest-debug)
+with a fresh APK attached — no zip, just tap to download:
+
+https://github.com/Akrishna87/budget-tracker-android/releases/download/latest-debug/app-debug.apk
+
+Install it on an Android device with "install from unknown sources"
+allowed for your file manager/browser.
+
+Alternatively, every build is also uploaded as a zipped artifact under
+the **Actions** tab (useful for grabbing an APK from a specific older
+commit, since the release above always reflects the newest one).
 
 To build locally instead, open this folder in Android Studio (Koala or
 newer) and run the `app` configuration, or from a terminal with the
