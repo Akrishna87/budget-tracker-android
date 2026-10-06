@@ -48,12 +48,17 @@ fun BudgetNavHost(factory: BudgetViewModelFactory) {
     val currentTitle = (Screen.bottomNavItems + secondaryScreens)
         .firstOrNull { screen -> currentDestination?.hierarchy?.any { it.route == screen.route } == true }
         ?.label ?: Screen.Dashboard.label
+    val onBack: (() -> Unit)? = if (isOnBottomNavRoute) {
+        null
+    } else {
+        { navController.popBackStack() }
+    }
 
     Scaffold(
         topBar = {
             BrandTopBar(
                 title = currentTitle,
-                onBack = if (isOnBottomNavRoute) null else navController::popBackStack
+                onBack = onBack
             )
         },
         bottomBar = {
