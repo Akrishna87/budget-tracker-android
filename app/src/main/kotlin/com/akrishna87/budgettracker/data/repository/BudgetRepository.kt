@@ -2,13 +2,16 @@ package com.akrishna87.budgettracker.data.repository
 
 import com.akrishna87.budgettracker.data.db.CategoryDao
 import com.akrishna87.budgettracker.data.db.CategoryEntity
+import com.akrishna87.budgettracker.data.db.RecurringBillDao
+import com.akrishna87.budgettracker.data.db.RecurringBillEntity
 import com.akrishna87.budgettracker.data.db.TransactionDao
 import com.akrishna87.budgettracker.data.db.TransactionEntity
 import kotlinx.coroutines.flow.Flow
 
 class BudgetRepository(
     private val categoryDao: CategoryDao,
-    private val transactionDao: TransactionDao
+    private val transactionDao: TransactionDao,
+    private val recurringBillDao: RecurringBillDao
 ) {
     fun observeCategories(): Flow<List<CategoryEntity>> = categoryDao.observeAll()
 
@@ -23,4 +26,12 @@ class BudgetRepository(
     suspend fun upsertTransaction(transaction: TransactionEntity) = transactionDao.upsert(transaction)
 
     suspend fun deleteTransaction(id: String) = transactionDao.deleteById(id)
+
+    fun observeBills(): Flow<List<RecurringBillEntity>> = recurringBillDao.observeAll()
+
+    suspend fun getActiveBills(): List<RecurringBillEntity> = recurringBillDao.getActive()
+
+    suspend fun upsertBill(bill: RecurringBillEntity) = recurringBillDao.upsert(bill)
+
+    suspend fun deleteBill(bill: RecurringBillEntity) = recurringBillDao.delete(bill)
 }

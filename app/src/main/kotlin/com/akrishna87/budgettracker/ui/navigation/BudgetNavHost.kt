@@ -21,6 +21,8 @@ import com.akrishna87.budgettracker.data.db.TransactionEntity
 import com.akrishna87.budgettracker.ui.BudgetViewModelFactory
 import com.akrishna87.budgettracker.ui.addtransaction.AddTransactionScreen
 import com.akrishna87.budgettracker.ui.addtransaction.AddTransactionViewModel
+import com.akrishna87.budgettracker.ui.bills.BillsScreen
+import com.akrishna87.budgettracker.ui.bills.BillsViewModel
 import com.akrishna87.budgettracker.ui.components.BrandTopBar
 import com.akrishna87.budgettracker.ui.dashboard.DashboardScreen
 import com.akrishna87.budgettracker.ui.dashboard.DashboardViewModel
@@ -99,6 +101,10 @@ fun BudgetNavHost(factory: BudgetViewModelFactory) {
                         }
                     }
                 )
+            }
+            composable(Screen.Bills.route) {
+                val viewModel: BillsViewModel = viewModel(factory = factory)
+                BillsScreen(viewModel)
             }
             composable(Screen.Settings.route) {
                 val viewModel: SettingsViewModel = viewModel(factory = factory)
