@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/vector"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Simple rising-bars mark, evokes budget/trend tracking. -->
+    <path
+        android:fillColor="#45D6B0"
+        android:pathData="M30,70 L42,70 L42,78 L30,78 Z" />
+    <path
+        android:fillColor="#45D6B0"
+        android:pathData="M48,56 L60,56 L60,78 L48,78 Z" />
+    <path
+        android:fillColor="#45D6B0"
+        android:pathData="M66,38 L78,38 L78,78 L66,78 Z" />
+</vector>
