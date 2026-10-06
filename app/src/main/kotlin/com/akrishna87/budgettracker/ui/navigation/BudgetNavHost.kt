@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -20,22 +21,28 @@ import com.akrishna87.budgettracker.data.db.TransactionEntity
 import com.akrishna87.budgettracker.ui.BudgetViewModelFactory
 import com.akrishna87.budgettracker.ui.addtransaction.AddTransactionScreen
 import com.akrishna87.budgettracker.ui.addtransaction.AddTransactionViewModel
+import com.akrishna87.budgettracker.ui.components.BrandTopBar
 import com.akrishna87.budgettracker.ui.dashboard.DashboardScreen
 import com.akrishna87.budgettracker.ui.dashboard.DashboardViewModel
 import com.akrishna87.budgettracker.ui.history.HistoryScreen
 import com.akrishna87.budgettracker.ui.history.HistoryViewModel
 import com.akrishna87.budgettracker.ui.settings.SettingsScreen
 import com.akrishna87.budgettracker.ui.settings.SettingsViewModel
+import com.akrishna87.budgettracker.ui.theme.Accent
 
 @Composable
 fun BudgetNavHost(factory: BudgetViewModelFactory) {
     val navController = rememberNavController()
     val addTransactionViewModel: AddTransactionViewModel = viewModel(factory = factory)
+    val backStackEntry by navController.currentBackStackEntryAsState()
+    val currentDestination = backStackEntry?.destination
+    val currentTitle = Screen.bottomNavItems
+        .firstOrNull { screen -> currentDestination?.hierarchy?.any { it.route == screen.route } == true }
+        ?.label ?: Screen.Dashboard.label
 
     Scaffold(
+        topBar = { BrandTopBar(title = currentTitle) },
         bottomBar = {
-            val backStackEntry by navController.currentBackStackEntryAsState()
-            val currentDestination = backStackEntry?.destination
             NavigationBar {
                 Screen.bottomNavItems.forEach { screen ->
                     val selected = currentDestination?.hierarchy?.any { it.route == screen.route } == true
@@ -50,7 +57,12 @@ fun BudgetNavHost(factory: BudgetViewModelFactory) {
                             }
                         },
                         icon = { Icon(screen.icon, contentDescription = screen.label) },
-                        label = { Text(screen.label) }
+                        label = { Text(screen.label) },
+                        colors = NavigationBarItemDefaults.colors(
+                            selectedIconColor = Accent,
+                            selectedTextColor = Accent,
+                            indicatorColor = Accent.copy(alpha = 0.16f)
+                        )
                     )
                 }
             }

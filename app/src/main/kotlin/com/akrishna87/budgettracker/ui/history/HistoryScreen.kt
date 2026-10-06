@@ -64,10 +64,6 @@ fun HistoryScreen(
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         item {
-            Text("History", style = MaterialTheme.typography.headlineSmall)
-        }
-
-        item {
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 FilterChip(selected = state.filter.type == TypeFilter.ALL, onClick = { viewModel.setTypeFilter(TypeFilter.ALL) }, label = { Text("All") })
                 FilterChip(selected = state.filter.type == TypeFilter.INCOME, onClick = { viewModel.setTypeFilter(TypeFilter.INCOME) }, label = { Text("💰 Income") })
@@ -204,7 +200,8 @@ private fun TransactionRow(
 ) {
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        shape = RoundedCornerShape(14.dp)
+        shape = RoundedCornerShape(14.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Row(
             modifier = Modifier.padding(12.dp).fillMaxWidth(),

@@ -39,6 +39,7 @@ import com.akrishna87.budgettracker.data.db.TransactionType
 import com.akrishna87.budgettracker.ui.theme.Expense
 import com.akrishna87.budgettracker.ui.theme.Income
 import com.akrishna87.budgettracker.ui.theme.Muted
+import com.akrishna87.budgettracker.ui.theme.SurfaceWell
 
 @Composable
 fun AddTransactionScreen(
@@ -64,11 +65,14 @@ fun AddTransactionScreen(
         contentPadding = PaddingValues(vertical = 16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        item {
-            Text(
-                if (draft.id != null) "Edit entry" else "Add entry",
-                style = MaterialTheme.typography.headlineSmall
-            )
+        if (draft.id != null) {
+            item {
+                Text(
+                    "✏️ Editing an existing entry",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = Muted
+                )
+            }
         }
 
         item {
@@ -167,7 +171,7 @@ fun AddTransactionScreen(
 @Composable
 private fun TypeToggle(selected: TransactionType, onSelect: (TransactionType) -> Unit) {
     Card(
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        colors = CardDefaults.cardColors(containerColor = SurfaceWell),
         shape = RoundedCornerShape(14.dp)
     ) {
         Row(Modifier.padding(4.dp)) {

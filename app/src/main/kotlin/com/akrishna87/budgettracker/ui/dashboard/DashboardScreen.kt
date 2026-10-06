@@ -13,6 +13,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import com.akrishna87.budgettracker.ui.components.ElevatedPanel
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -73,27 +74,22 @@ fun DashboardScreen(viewModel: DashboardViewModel) {
         }
 
         item {
-            Card(
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                shape = RoundedCornerShape(18.dp)
-            ) {
-                Column(Modifier.padding(18.dp)) {
+            ElevatedPanel {
+                Text(
+                    "Category breakdown",
+                    style = MaterialTheme.typography.titleMedium
+                )
+                Spacer(Modifier.height(10.dp))
+                if (state.categorySpend.isEmpty()) {
                     Text(
-                        "Category breakdown",
-                        style = MaterialTheme.typography.titleMedium
+                        "No expenses logged for this month yet.",
+                        color = Muted,
+                        style = MaterialTheme.typography.bodyMedium
                     )
-                    Spacer(Modifier.height(10.dp))
-                    if (state.categorySpend.isEmpty()) {
-                        Text(
-                            "No expenses logged for this month yet.",
-                            color = Muted,
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                    } else {
-                        state.categorySpend.forEach { entry ->
-                            CategoryBudgetRow(entry)
-                            Spacer(Modifier.height(12.dp))
-                        }
+                } else {
+                    state.categorySpend.forEach { entry ->
+                        CategoryBudgetRow(entry)
+                        Spacer(Modifier.height(12.dp))
                     }
                 }
             }
@@ -108,12 +104,9 @@ private fun RepeatLastExpenseCard(
     onRepeat: () -> Unit,
     onUndo: (String) -> Unit
 ) {
-    Card(
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        shape = RoundedCornerShape(18.dp)
-    ) {
+    ElevatedPanel(contentPadding = 16) {
         Row(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
@@ -158,37 +151,32 @@ private fun MonthSummaryCard(
     onPrevMonth: () -> Unit,
     onNextMonth: () -> Unit
 ) {
-    Card(
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        shape = RoundedCornerShape(18.dp)
-    ) {
-        Column(Modifier.padding(18.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(onClick = onPrevMonth) {
-                    Icon(Icons.Filled.ChevronLeft, contentDescription = "Previous month")
-                }
-                Text(monthLabel(monthKey), style = MaterialTheme.typography.titleMedium)
-                IconButton(onClick = onNextMonth) {
-                    Icon(Icons.Filled.ChevronRight, contentDescription = "Next month")
-                }
+    ElevatedPanel {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(onClick = onPrevMonth) {
+                Icon(Icons.Filled.ChevronLeft, contentDescription = "Previous month")
             }
-            Spacer(Modifier.height(12.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                SummaryStat(label = "Income", value = totalIncome, color = Income, modifier = Modifier.weight(1f))
-                SummaryStat(label = "Expenses", value = totalExpense, color = Expense, modifier = Modifier.weight(1f))
+            Text(monthLabel(monthKey), style = MaterialTheme.typography.titleMedium)
+            IconButton(onClick = onNextMonth) {
+                Icon(Icons.Filled.ChevronRight, contentDescription = "Next month")
             }
-            Spacer(Modifier.height(10.dp))
-            SummaryStat(
-                label = "Net",
-                value = net,
-                color = if (net >= 0) Income else Expense,
-                modifier = Modifier.fillMaxWidth()
-            )
         }
+        Spacer(Modifier.height(12.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            SummaryStat(label = "Income", value = totalIncome, color = Income, modifier = Modifier.weight(1f))
+            SummaryStat(label = "Expenses", value = totalExpense, color = Expense, modifier = Modifier.weight(1f))
+        }
+        Spacer(Modifier.height(10.dp))
+        SummaryStat(
+            label = "Net",
+            value = net,
+            color = if (net >= 0) Income else Expense,
+            modifier = Modifier.fillMaxWidth()
+        )
     }
 }
 

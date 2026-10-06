@@ -4,7 +4,9 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -33,6 +35,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.akrishna87.budgettracker.data.db.CategoryEntity
+import com.akrishna87.budgettracker.ui.components.ElevatedPanel
 import com.akrishna87.budgettracker.ui.components.IconBadge
 import com.akrishna87.budgettracker.ui.theme.Danger
 import com.akrishna87.budgettracker.ui.theme.Muted
@@ -52,12 +55,10 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         item {
-            Text("Categories & budgets", style = MaterialTheme.typography.headlineSmall)
             Text(
                 "Set a monthly budget per category to track it on the Dashboard. Leave budget at 0 for no limit.",
                 color = Muted,
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.padding(top = 4.dp)
+                style = MaterialTheme.typography.bodyMedium
             )
         }
 
@@ -107,7 +108,8 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
 private fun CategoryRow(category: CategoryEntity, onEdit: () -> Unit, onDelete: () -> Unit) {
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        shape = RoundedCornerShape(14.dp)
+        shape = RoundedCornerShape(14.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Row(
             modifier = Modifier.padding(12.dp).fillMaxWidth(),
@@ -139,7 +141,8 @@ private fun CategoryEditRow(
 
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        shape = RoundedCornerShape(14.dp)
+        shape = RoundedCornerShape(14.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -166,28 +169,29 @@ private fun AddCategoryRow(onAdd: (String, String, Double) -> Unit) {
     var name by remember { mutableStateOf("") }
     var budget by remember { mutableStateOf("") }
 
-    Card(
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        shape = RoundedCornerShape(14.dp)
-    ) {
-        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("Add category", fontWeight = FontWeight.SemiBold)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(value = emoji, onValueChange = { emoji = it }, modifier = Modifier.width(70.dp), label = { Text("Icon") })
-                OutlinedTextField(value = name, onValueChange = { name = it }, modifier = Modifier.weight(1f), label = { Text("Name") })
-            }
-            OutlinedTextField(
-                value = budget,
-                onValueChange = { budget = it },
-                modifier = Modifier.fillMaxWidth(),
-                label = { Text("Monthly budget (optional)") }
-            )
-            Button(onClick = {
+    ElevatedPanel(contentPadding = 14) {
+        Text("Add category", style = MaterialTheme.typography.titleMedium)
+        Spacer(Modifier.height(10.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            OutlinedTextField(value = emoji, onValueChange = { emoji = it }, modifier = Modifier.width(70.dp), label = { Text("Icon") })
+            OutlinedTextField(value = name, onValueChange = { name = it }, modifier = Modifier.weight(1f), label = { Text("Name") })
+        }
+        Spacer(Modifier.height(8.dp))
+        OutlinedTextField(
+            value = budget,
+            onValueChange = { budget = it },
+            modifier = Modifier.fillMaxWidth(),
+            label = { Text("Monthly budget (optional)") }
+        )
+        Spacer(Modifier.height(10.dp))
+        Button(
+            modifier = Modifier.fillMaxWidth(),
+            onClick = {
                 onAdd(name, emoji, budget.toDoubleOrNull() ?: 0.0)
                 name = ""
                 budget = ""
                 emoji = "⭐"
-            }) { Text("Add category") }
-        }
+            }
+        ) { Text("Add category") }
     }
 }

@@ -1,0 +1,56 @@
+package com.akrishna87.budgettracker.ui.components
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.akrishna87.budgettracker.ui.theme.Accent
+import com.akrishna87.budgettracker.ui.theme.AccentOnColor
+import com.akrishna87.budgettracker.ui.theme.AccentSecondary
+import com.akrishna87.budgettracker.ui.theme.Surface
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun BrandTopBar(title: String) {
+    TopAppBar(
+        title = {
+            Text(
+                title,
+                fontWeight = FontWeight.ExtraBold,
+                fontSize = 19.sp
+            )
+        },
+        navigationIcon = { BrandBadge() },
+        colors = TopAppBarDefaults.topAppBarColors(
+            containerColor = Surface,
+            titleContentColor = MaterialTheme.colorScheme.onSurface
+        )
+    )
+}
+
+@Composable
+private fun BrandBadge() {
+    Box(
+        modifier = Modifier
+            .size(34.dp)
+            .background(
+                Brush.linearGradient(listOf(Accent, AccentSecondary)),
+                RoundedCornerShape(10.dp)
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        Text("₹", color = AccentOnColor, fontWeight = FontWeight.Black, fontSize = 17.sp)
+    }
+}
