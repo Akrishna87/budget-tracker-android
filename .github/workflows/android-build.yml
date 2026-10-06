@@ -20,19 +20,39 @@ jobs:
           java-version: "17"
 
       - name: Install required Android SDK packages
-        # ubuntu-latest runners ship with the Android SDK preinstalled
-        # (ANDROID_HOME already set), but not necessarily the exact
-        # compileSdk/build-tools this project needs, and cmdline-tools'
-        # bin/ isn't on PATH by default. The commonly used
-        # android-actions/setup-android action tries to also install a
-        # legacy "tools" package that Google removed from the SDK repo
-        # years ago, which makes it fail outright - so install directly
-        # instead of relying on that action.
+        # The commonly used android-actions/setup-android action also
+        # tries to install a legacy "tools" package that Google removed
+        # from the SDK repo years ago, which makes it fail outright - so
+        # this installs directly instead of relying on that action.
+        # Runner images vary in whether/where cmdline-tools are
+        # preinstalled, so fall back to downloading them fresh if an
+        # existing sdkmanager isn't found.
         run: |
-          SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools" -maxdepth 2 -name sdkmanager -type f | sort -V | tail -1)"
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
+          SDK_ROOT="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-$HOME/android-sdk}}"
+          echo "Using SDK root: $SDK_ROOT"
+          ls -la "$SDK_ROOT" 2>/dev/null || echo "(SDK root does not exist yet)"
+
+          SDKMANAGER="$(find "$SDK_ROOT/cmdline-tools" -maxdepth 2 -iname sdkmanager -type f 2>/dev/null | sort -V | tail -1)"
+
+          if [ -z "$SDKMANAGER" ]; then
+            echo "No existing sdkmanager found, downloading cmdline-tools"
+            curl -fsSL -o /tmp/cmdline-tools.zip https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
+            mkdir -p "$SDK_ROOT/cmdline-tools"
+            unzip -q /tmp/cmdline-tools.zip -d "$SDK_ROOT/cmdline-tools"
+            mv "$SDK_ROOT/cmdline-tools/cmdline-tools" "$SDK_ROOT/cmdline-tools/latest"
+            SDKMANAGER="$SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
+          fi
+
           echo "Using sdkmanager at: $SDKMANAGER"
+          export ANDROID_HOME="$SDK_ROOT"
+          export ANDROID_SDK_ROOT="$SDK_ROOT"
           yes | "$SDKMANAGER" --licenses >/dev/null || true
           "$SDKMANAGER" "platform-tools" "platforms;android-35" "build-tools;35.0.0"
+
+          echo "ANDROID_HOME=$SDK_ROOT" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=$SDK_ROOT" >> "$GITHUB_ENV"
 
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
