@@ -5,6 +5,12 @@ plugins {
     alias(libs.plugins.ksp)
 }
 
+// CI sets GITHUB_RUN_NUMBER, so every build gets a distinct, increasing version -
+// otherwise two different builds look identical to Android (and to a human
+// checking Settings > Apps), which makes a stale install indistinguishable
+// from a fresh one.
+val buildNumber = (System.getenv("GITHUB_RUN_NUMBER") ?: "1").toInt()
+
 android {
     namespace = "com.akrishna87.budgettracker"
     compileSdk = 35
@@ -13,8 +19,8 @@ android {
         applicationId = "com.akrishna87.budgettracker"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = buildNumber
+        versionName = "0.1.$buildNumber"
     }
 
     buildTypes {

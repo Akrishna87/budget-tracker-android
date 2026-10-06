@@ -69,18 +69,27 @@ jobs:
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
 
+      - name: Rename APK with the build number
+        # A fixed filename (app-debug.apk) risks a phone or browser reusing an
+        # old cached/already-downloaded file of that exact name instead of
+        # fetching the new one, so an uninstall+reinstall can silently end up
+        # putting the same stale build back. A name that changes every build
+        # makes that impossible.
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: cp app/build/outputs/apk/debug/app-debug.apk "app/build/outputs/apk/debug/app-debug-v${{ github.run_number }}.apk"
+
       - name: Publish APK to a rolling release (direct, unzipped download link)
         # Build artifacts (above) always get zipped by GitHub with no way
         # around it. A release attachment downloads as the raw file
         # instead, so this keeps one rolling "latest-debug" release
         # updated with the newest APK on every push to main, giving a
-        # stable, direct, non-zip download link.
+        # direct, non-zip download link that changes name every build.
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: latest-debug
           name: Latest debug build
-          body: Automatically updated on every push to main. Commit ${{ github.sha }}.
+          body: Automatically updated on every push to main. Commit ${{ github.sha }}. Build #${{ github.run_number }} (versionCode ${{ github.run_number }}).
           prerelease: true
           make_latest: true
-          files: app/build/outputs/apk/debug/app-debug.apk
+          files: app/build/outputs/apk/debug/app-debug-v${{ github.run_number }}.apk
