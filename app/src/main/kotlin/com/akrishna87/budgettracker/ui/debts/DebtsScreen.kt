@@ -15,6 +15,8 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.outlined.AccountBalance
+import androidx.compose.material.icons.outlined.CreditCard
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
@@ -48,10 +50,8 @@ import com.akrishna87.budgettracker.ui.components.ElevatedPanel
 import com.akrishna87.budgettracker.ui.components.EmptyState
 import com.akrishna87.budgettracker.ui.components.IconBadge
 import com.akrishna87.budgettracker.ui.components.LocalSnackbarHostState
-import com.akrishna87.budgettracker.ui.theme.Danger
-import com.akrishna87.budgettracker.ui.theme.Income
-import com.akrishna87.budgettracker.ui.theme.Muted
-import com.akrishna87.budgettracker.ui.theme.SurfaceWell
+import com.akrishna87.budgettracker.ui.components.categoryIcon
+import com.akrishna87.budgettracker.ui.theme.BudgetTheme
 import com.akrishna87.budgettracker.util.formatMoney
 import kotlinx.coroutines.launch
 
@@ -65,6 +65,7 @@ fun DebtsScreen(viewModel: DebtsViewModel) {
     var showAdd by remember { mutableStateOf(false) }
     val snackbarHostState = LocalSnackbarHostState.current
     val scope = rememberCoroutineScope()
+    val colors = BudgetTheme.colors
 
     LazyColumn(
         modifier = Modifier
@@ -76,14 +77,14 @@ fun DebtsScreen(viewModel: DebtsViewModel) {
         item {
             Text(
                 "Loans and credit cards, tracked by outstanding principal remaining.",
-                color = Muted,
+                color = colors.muted,
                 style = MaterialTheme.typography.bodyMedium
             )
         }
 
         if (state.accounts.isEmpty()) {
             item {
-                EmptyState(emoji = "💳", text = "No loans or credit cards added yet.")
+                EmptyState(icon = Icons.Outlined.CreditCard, text = "No loans or credit cards added yet.")
             }
         } else {
             items(state.accounts, key = { it.id }) { account ->
@@ -186,7 +187,8 @@ private fun DebtRow(
     onEdit: () -> Unit,
     onDelete: () -> Unit
 ) {
-    val emoji = if (account.type == DebtType.CREDIT_CARD) "💳" else "🏦"
+    val colors = BudgetTheme.colors
+    val icon = if (account.type == DebtType.CREDIT_CARD) Icons.Outlined.CreditCard else Icons.Outlined.AccountBalance
     val paidFraction = if (account.originalAmount > 0) {
         (1.0 - (account.outstandingAmount / account.originalAmount)).toFloat().coerceIn(0f, 1f)
     } else null
@@ -197,30 +199,30 @@ private fun DebtRow(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            IconBadge(emoji = emoji, tint = Danger)
+            IconBadge(icon = icon, tint = colors.danger)
             Column(Modifier.weight(1f)) {
                 Text(account.name, fontWeight = FontWeight.SemiBold)
                 Text(
                     "Outstanding: " + formatMoney(account.outstandingAmount),
-                    color = Muted,
+                    color = colors.muted,
                     style = MaterialTheme.typography.bodyMedium
                 )
             }
             IconButton(onClick = onEdit) { Icon(Icons.Filled.Edit, contentDescription = "Edit") }
-            IconButton(onClick = onDelete) { Icon(Icons.Filled.Delete, contentDescription = "Delete", tint = Danger) }
+            IconButton(onClick = onDelete) { Icon(Icons.Filled.Delete, contentDescription = "Delete", tint = colors.danger) }
         }
         if (paidFraction != null) {
             Spacer(Modifier.height(10.dp))
             LinearProgressIndicator(
                 progress = { paidFraction },
                 modifier = Modifier.fillMaxWidth().height(8.dp),
-                color = Income,
-                trackColor = SurfaceWell
+                color = colors.income,
+                trackColor = colors.surfaceWell
             )
             Spacer(Modifier.height(4.dp))
             Text(
                 "${(paidFraction * 100).toInt()}% paid off of ${formatMoney(account.originalAmount)}",
-                color = Muted,
+                color = colors.muted,
                 style = MaterialTheme.typography.labelSmall
             )
         }
@@ -248,8 +250,18 @@ private fun DebtFormPanel(
         Text(title, style = MaterialTheme.typography.titleMedium)
         Spacer(Modifier.height(10.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            FilterChip(selected = type == DebtType.LOAN, onClick = { type = DebtType.LOAN }, label = { Text("🏦 Loan") })
-            FilterChip(selected = type == DebtType.CREDIT_CARD, onClick = { type = DebtType.CREDIT_CARD }, label = { Text("💳 Credit card") })
+            FilterChip(
+                selected = type == DebtType.LOAN,
+                onClick = { type = DebtType.LOAN },
+                label = { Text("Loan") },
+                leadingIcon = { Icon(Icons.Outlined.AccountBalance, contentDescription = null, modifier = Modifier.height(16.dp)) }
+            )
+            FilterChip(
+                selected = type == DebtType.CREDIT_CARD,
+                onClick = { type = DebtType.CREDIT_CARD },
+                label = { Text("Credit card") },
+                leadingIcon = { Icon(Icons.Outlined.CreditCard, contentDescription = null, modifier = Modifier.height(16.dp)) }
+            )
         }
         Spacer(Modifier.height(8.dp))
         OutlinedTextField(
@@ -297,13 +309,14 @@ private fun PaymentDialog(
 ) {
     var amount by remember { mutableStateOf("") }
     var categoryId by remember { mutableStateOf<String?>(null) }
+    val colors = BudgetTheme.colors
 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Record payment") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Paying towards \"${account.name}\". This also logs an expense.", color = Muted, style = MaterialTheme.typography.bodyMedium)
+                Text("Paying towards \"${account.name}\". This also logs an expense.", color = colors.muted, style = MaterialTheme.typography.bodyMedium)
                 OutlinedTextField(
                     value = amount,
                     onValueChange = { amount = it },
@@ -330,13 +343,14 @@ private fun ChargeDialog(
     onDismiss: () -> Unit
 ) {
     var amount by remember { mutableStateOf("") }
+    val colors = BudgetTheme.colors
 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Add charge") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Raises the outstanding balance on \"${account.name}\".", color = Muted, style = MaterialTheme.typography.bodyMedium)
+                Text("Raises the outstanding balance on \"${account.name}\".", color = colors.muted, style = MaterialTheme.typography.bodyMedium)
                 OutlinedTextField(
                     value = amount,
                     onValueChange = { amount = it },
@@ -362,7 +376,7 @@ private fun CategoryPicker(
     onSelect: (String?) -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
-    val label = categories.find { it.id == selectedId }?.let { "${it.emoji} ${it.name}" } ?: "No category"
+    val label = categories.find { it.id == selectedId }?.name ?: "No category"
     Box {
         OutlinedButton(onClick = { expanded = true }, modifier = Modifier.fillMaxWidth()) {
             Text(label, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -371,7 +385,8 @@ private fun CategoryPicker(
             DropdownMenuItem(text = { Text("No category") }, onClick = { onSelect(null); expanded = false })
             categories.forEach { cat ->
                 DropdownMenuItem(
-                    text = { Text("${cat.emoji} ${cat.name}") },
+                    text = { Text(cat.name) },
+                    leadingIcon = { Icon(categoryIcon(cat), contentDescription = null) },
                     onClick = { onSelect(cat.id); expanded = false }
                 )
             }

@@ -46,11 +46,11 @@ class MainActivity : FragmentActivity() {
         val app = application as BudgetTrackerApp
         securityPrefs = app.securityPrefs
         isUnlocked.value = !securityPrefs.isLockEnabled
-        val factory = BudgetViewModelFactory(app.repository, securityPrefs)
+        val factory = BudgetViewModelFactory(app.repository, securityPrefs, app.themeController)
         val openAddOnLaunch = intent?.getBooleanExtra(QuickAddWidget.EXTRA_OPEN_ADD, false) ?: false
 
         setContent {
-            BudgetTrackerTheme {
+            BudgetTrackerTheme(themeMode = app.themeController.mode) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background

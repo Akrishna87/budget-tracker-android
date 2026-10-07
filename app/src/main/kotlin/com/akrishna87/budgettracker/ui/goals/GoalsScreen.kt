@@ -15,6 +15,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.outlined.Flag
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
@@ -42,10 +43,7 @@ import com.akrishna87.budgettracker.ui.components.ElevatedPanel
 import com.akrishna87.budgettracker.ui.components.EmptyState
 import com.akrishna87.budgettracker.ui.components.IconBadge
 import com.akrishna87.budgettracker.ui.components.LocalSnackbarHostState
-import com.akrishna87.budgettracker.ui.theme.Danger
-import com.akrishna87.budgettracker.ui.theme.Income
-import com.akrishna87.budgettracker.ui.theme.Muted
-import com.akrishna87.budgettracker.ui.theme.SurfaceWell
+import com.akrishna87.budgettracker.ui.theme.BudgetTheme
 import com.akrishna87.budgettracker.util.formatMoney
 import kotlinx.coroutines.launch
 
@@ -59,6 +57,7 @@ fun GoalsScreen(viewModel: GoalsViewModel) {
     var showAdd by remember { mutableStateOf(false) }
     val snackbarHostState = LocalSnackbarHostState.current
     val scope = rememberCoroutineScope()
+    val colors = BudgetTheme.colors
 
     LazyColumn(
         modifier = Modifier
@@ -70,14 +69,14 @@ fun GoalsScreen(viewModel: GoalsViewModel) {
         item {
             Text(
                 "Set a target for each goal and chip away at it whenever you can.",
-                color = Muted,
+                color = colors.muted,
                 style = MaterialTheme.typography.bodyMedium
             )
         }
 
         if (goals.isEmpty()) {
             item {
-                EmptyState(emoji = "🎯", text = "No savings goals yet.")
+                EmptyState(icon = Icons.Outlined.Flag, text = "No savings goals yet.")
             }
         } else {
             items(goals, key = { it.id }) { goal ->
@@ -85,8 +84,8 @@ fun GoalsScreen(viewModel: GoalsViewModel) {
                     GoalFormPanel(
                         title = "Edit goal",
                         initial = goal,
-                        onSubmit = { name, emoji, target ->
-                            viewModel.updateGoal(goal, name, emoji, target)
+                        onSubmit = { name, target ->
+                            viewModel.updateGoal(goal, name, target)
                             editingGoal = null
                         },
                         onCancel = { editingGoal = null }
@@ -108,8 +107,8 @@ fun GoalsScreen(viewModel: GoalsViewModel) {
                 GoalFormPanel(
                     title = "Add savings goal",
                     initial = null,
-                    onSubmit = { name, emoji, target ->
-                        viewModel.addGoal(name, emoji, target)
+                    onSubmit = { name, target ->
+                        viewModel.addGoal(name, target)
                         showAdd = false
                     },
                     onCancel = { showAdd = false }
@@ -181,6 +180,7 @@ private fun GoalRow(
     onEdit: () -> Unit,
     onDelete: () -> Unit
 ) {
+    val colors = BudgetTheme.colors
     val fraction = if (goal.targetAmount > 0) (goal.savedAmount / goal.targetAmount).toFloat().coerceIn(0f, 1f) else 0f
 
     ElevatedPanel(contentPadding = 14) {
@@ -189,27 +189,27 @@ private fun GoalRow(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            IconBadge(emoji = goal.emoji, tint = Income)
+            IconBadge(icon = Icons.Outlined.Flag, tint = colors.income)
             Column(Modifier.weight(1f)) {
                 Text(goal.name, fontWeight = FontWeight.SemiBold)
                 Text(
                     "${formatMoney(goal.savedAmount)} / ${formatMoney(goal.targetAmount)}",
-                    color = Muted,
+                    color = colors.muted,
                     style = MaterialTheme.typography.bodyMedium
                 )
             }
             IconButton(onClick = onEdit) { Icon(Icons.Filled.Edit, contentDescription = "Edit") }
-            IconButton(onClick = onDelete) { Icon(Icons.Filled.Delete, contentDescription = "Delete", tint = Danger) }
+            IconButton(onClick = onDelete) { Icon(Icons.Filled.Delete, contentDescription = "Delete", tint = colors.danger) }
         }
         Spacer(Modifier.height(10.dp))
         LinearProgressIndicator(
             progress = { fraction },
             modifier = Modifier.fillMaxWidth().height(8.dp),
-            color = Income,
-            trackColor = SurfaceWell
+            color = colors.income,
+            trackColor = colors.surfaceWell
         )
         Spacer(Modifier.height(4.dp))
-        Text("${(fraction * 100).toInt()}% of goal", color = Muted, style = MaterialTheme.typography.labelSmall)
+        Text("${(fraction * 100).toInt()}% of goal", color = colors.muted, style = MaterialTheme.typography.labelSmall)
         Spacer(Modifier.height(10.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Button(onClick = onContribute, modifier = Modifier.weight(1f)) { Text("Add money") }
@@ -222,20 +222,22 @@ private fun GoalRow(
 private fun GoalFormPanel(
     title: String,
     initial: SavingsGoalEntity?,
-    onSubmit: (String, String, Double) -> Unit,
+    onSubmit: (String, Double) -> Unit,
     onCancel: () -> Unit
 ) {
-    var emoji by remember { mutableStateOf(initial?.emoji ?: "🎯") }
     var name by remember { mutableStateOf(initial?.name ?: "") }
     var target by remember { mutableStateOf(initial?.targetAmount?.toString() ?: "") }
 
     ElevatedPanel(contentPadding = 14) {
         Text(title, style = MaterialTheme.typography.titleMedium)
         Spacer(Modifier.height(10.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedTextField(value = emoji, onValueChange = { emoji = it }, modifier = Modifier.width(70.dp), label = { Text("Icon") })
-            OutlinedTextField(value = name, onValueChange = { name = it }, modifier = Modifier.weight(1f), label = { Text("Name") })
-        }
+        OutlinedTextField(
+            value = name,
+            onValueChange = { name = it },
+            modifier = Modifier.fillMaxWidth(),
+            label = { Text("Name") },
+            placeholder = { Text("e.g. Emergency fund") }
+        )
         Spacer(Modifier.height(8.dp))
         OutlinedTextField(
             value = target,
@@ -248,7 +250,7 @@ private fun GoalFormPanel(
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Button(
                 modifier = Modifier.weight(1f),
-                onClick = { onSubmit(name, emoji, target.toDoubleOrNull() ?: 0.0) }
+                onClick = { onSubmit(name, target.toDoubleOrNull() ?: 0.0) }
             ) { Text(if (initial == null) "Add goal" else "Save changes") }
             TextButton(onClick = onCancel) { Text("Cancel") }
         }

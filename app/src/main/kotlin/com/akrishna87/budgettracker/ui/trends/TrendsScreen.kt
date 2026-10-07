@@ -31,10 +31,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.akrishna87.budgettracker.ui.components.ElevatedPanel
 import com.akrishna87.budgettracker.ui.theme.Accent
-import com.akrishna87.budgettracker.ui.theme.Danger
-import com.akrishna87.budgettracker.ui.theme.Expense
-import com.akrishna87.budgettracker.ui.theme.Income
-import com.akrishna87.budgettracker.ui.theme.Muted
+import com.akrishna87.budgettracker.ui.theme.BudgetTheme
 import com.akrishna87.budgettracker.util.formatMoney
 import com.akrishna87.budgettracker.util.monthLabel
 import com.akrishna87.budgettracker.util.shortMonthLabel
@@ -42,6 +39,7 @@ import com.akrishna87.budgettracker.util.shortMonthLabel
 @Composable
 fun TrendsScreen(viewModel: TrendsViewModel) {
     val state by viewModel.uiState.collectAsState()
+    val colors = BudgetTheme.colors
 
     LazyColumn(
         modifier = Modifier
@@ -81,12 +79,12 @@ fun TrendsScreen(viewModel: TrendsViewModel) {
                 }
                 Spacer(Modifier.height(8.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    YearStat(label = "Income", value = state.yearIncome, color = Income, modifier = Modifier.weight(1f))
-                    YearStat(label = "Expenses", value = state.yearExpense, color = Expense, modifier = Modifier.weight(1f))
+                    YearStat(label = "Income", value = state.yearIncome, color = colors.income, modifier = Modifier.weight(1f))
+                    YearStat(label = "Expenses", value = state.yearExpense, color = colors.expense, modifier = Modifier.weight(1f))
                     YearStat(
                         label = "Net",
                         value = state.yearNet,
-                        color = if (state.yearNet >= 0) Income else Danger,
+                        color = if (state.yearNet >= 0) colors.income else colors.danger,
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -102,9 +100,10 @@ fun TrendsScreen(viewModel: TrendsViewModel) {
 
 @Composable
 private fun LegendRow() {
+    val colors = BudgetTheme.colors
     Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-        LegendDot(color = Income, label = "Income")
-        LegendDot(color = Expense, label = "Expense")
+        LegendDot(color = colors.income, label = "Income")
+        LegendDot(color = colors.expense, label = "Expense")
     }
 }
 
@@ -114,12 +113,13 @@ private fun LegendDot(color: androidx.compose.ui.graphics.Color, label: String) 
         Canvas(modifier = Modifier.height(10.dp).width(10.dp)) {
             drawCircle(color = color, radius = size.minDimension / 2f)
         }
-        Text(label, style = MaterialTheme.typography.labelSmall, color = Muted)
+        Text(label, style = MaterialTheme.typography.labelSmall, color = BudgetTheme.colors.muted)
     }
 }
 
 @Composable
 private fun MonthlyBarChart(months: List<MonthlyAggregate>) {
+    val colors = BudgetTheme.colors
     val maxValue = (months.maxOfOrNull { maxOf(it.income, it.expense) } ?: 0.0).coerceAtLeast(1.0)
 
     Column {
@@ -136,12 +136,12 @@ private fun MonthlyBarChart(months: List<MonthlyAggregate>) {
                 val incomeHeight = (month.income / maxValue).toFloat() * size.height
                 val expenseHeight = (month.expense / maxValue).toFloat() * size.height
                 drawRect(
-                    color = Income,
+                    color = colors.income,
                     topLeft = Offset(groupX + barWidth * 0.4f, size.height - incomeHeight),
                     size = Size(barWidth, incomeHeight)
                 )
                 drawRect(
-                    color = Expense,
+                    color = colors.expense,
                     topLeft = Offset(groupX + barWidth * 1.8f, size.height - expenseHeight),
                     size = Size(barWidth, expenseHeight)
                 )
@@ -153,7 +153,7 @@ private fun MonthlyBarChart(months: List<MonthlyAggregate>) {
                 Text(
                     shortMonthLabel(month.monthKey),
                     style = MaterialTheme.typography.labelSmall,
-                    color = Muted,
+                    color = colors.muted,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.weight(1f)
                 )
@@ -164,6 +164,7 @@ private fun MonthlyBarChart(months: List<MonthlyAggregate>) {
 
 @Composable
 private fun NetTrendLine(months: List<MonthlyAggregate>) {
+    val colors = BudgetTheme.colors
     val maxAbs = (months.maxOfOrNull { kotlin.math.abs(it.net) } ?: 0.0).coerceAtLeast(1.0)
 
     Canvas(
@@ -179,7 +180,7 @@ private fun NetTrendLine(months: List<MonthlyAggregate>) {
         }
 
         drawLine(
-            color = Muted.copy(alpha = 0.3f),
+            color = colors.muted.copy(alpha = 0.3f),
             start = Offset(0f, midY),
             end = Offset(size.width, midY),
             strokeWidth = 1.dp.toPx()
@@ -202,7 +203,7 @@ private fun NetTrendLine(months: List<MonthlyAggregate>) {
 @Composable
 private fun YearStat(label: String, value: Double, color: androidx.compose.ui.graphics.Color, modifier: Modifier = Modifier) {
     Column(modifier) {
-        Text(label.uppercase(), style = MaterialTheme.typography.labelSmall, color = Muted)
+        Text(label.uppercase(), style = MaterialTheme.typography.labelSmall, color = BudgetTheme.colors.muted)
         Spacer(Modifier.height(4.dp))
         Text(formatMoney(value), style = MaterialTheme.typography.titleSmall, color = color, maxLines = 1)
     }
@@ -210,6 +211,7 @@ private fun YearStat(label: String, value: Double, color: androidx.compose.ui.gr
 
 @Composable
 private fun MonthRow(month: MonthlyAggregate) {
+    val colors = BudgetTheme.colors
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -217,11 +219,11 @@ private fun MonthRow(month: MonthlyAggregate) {
     ) {
         Text(monthLabel(month.monthKey), fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodyMedium)
         if (month.income == 0.0 && month.expense == 0.0) {
-            Text("No activity", color = Muted, style = MaterialTheme.typography.bodySmall)
+            Text("No activity", color = colors.muted, style = MaterialTheme.typography.bodySmall)
         } else {
             Text(
                 "+${formatMoney(month.income)}  -${formatMoney(month.expense)}",
-                color = Muted,
+                color = colors.muted,
                 style = MaterialTheme.typography.bodySmall
             )
         }

@@ -15,24 +15,24 @@ class GoalsViewModel(private val repository: BudgetRepository) : ViewModel() {
     val goals: StateFlow<List<SavingsGoalEntity>> = repository.observeSavingsGoals()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    fun addGoal(name: String, emoji: String, targetAmount: Double) {
+    fun addGoal(name: String, targetAmount: Double) {
         if (name.isBlank() || targetAmount <= 0.0) return
         viewModelScope.launch {
             repository.upsertSavingsGoal(
                 SavingsGoalEntity(
                     id = UUID.randomUUID().toString(),
                     name = name.trim(),
-                    emoji = emoji.ifBlank { "🎯" },
+                    emoji = "",
                     targetAmount = targetAmount
                 )
             )
         }
     }
 
-    fun updateGoal(goal: SavingsGoalEntity, name: String, emoji: String, targetAmount: Double) {
+    fun updateGoal(goal: SavingsGoalEntity, name: String, targetAmount: Double) {
         if (name.isBlank() || targetAmount <= 0.0) return
         viewModelScope.launch {
-            repository.upsertSavingsGoal(goal.copy(name = name.trim(), emoji = emoji.ifBlank { "🎯" }, targetAmount = targetAmount))
+            repository.upsertSavingsGoal(goal.copy(name = name.trim(), targetAmount = targetAmount))
         }
     }
 

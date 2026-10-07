@@ -8,17 +8,23 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.ArrowCircleDown
+import androidx.compose.material.icons.outlined.ArrowCircleUp
+import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -28,18 +34,19 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.akrishna87.budgettracker.data.db.CategoryEntity
 import com.akrishna87.budgettracker.data.db.TransactionType
-import com.akrishna87.budgettracker.ui.theme.Expense
-import com.akrishna87.budgettracker.ui.theme.Income
-import com.akrishna87.budgettracker.ui.theme.Muted
-import com.akrishna87.budgettracker.ui.theme.SurfaceWell
+import com.akrishna87.budgettracker.ui.components.categoryIcon
+import com.akrishna87.budgettracker.ui.theme.BudgetTheme
 
 @Composable
 fun AddTransactionScreen(
@@ -49,6 +56,7 @@ fun AddTransactionScreen(
     val state by viewModel.uiState.collectAsState()
     val draft = state.draft
     val focusRequester = remember { FocusRequester() }
+    val colors = BudgetTheme.colors
 
     LaunchedEffect(state.saved) {
         if (state.saved) onSaved()
@@ -67,11 +75,14 @@ fun AddTransactionScreen(
     ) {
         if (draft.id != null) {
             item {
-                Text(
-                    "✏️ Editing an existing entry",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = Muted
-                )
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Icon(Icons.Outlined.Edit, contentDescription = null, tint = colors.muted, modifier = Modifier.height(16.dp))
+                    Text(
+                        "Editing an existing entry",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = colors.muted
+                    )
+                }
             }
         }
 
@@ -99,10 +110,10 @@ fun AddTransactionScreen(
         if (draft.type == TransactionType.EXPENSE) {
             item {
                 Column {
-                    Text("Category (tap one)", style = MaterialTheme.typography.labelLarge, color = Muted)
+                    Text("Category (tap one)", style = MaterialTheme.typography.labelLarge, color = colors.muted)
                     Spacer(Modifier.height(8.dp))
-                    ChipFlow(
-                        items = state.categories.map { it.id to "${it.emoji} ${it.name}" },
+                    CategoryChipFlow(
+                        categories = state.categories,
                         selected = draft.categoryId,
                         onSelect = viewModel::setCategory
                     )
@@ -110,7 +121,7 @@ fun AddTransactionScreen(
             }
             item {
                 Column {
-                    Text("Payment method (tap one)", style = MaterialTheme.typography.labelLarge, color = Muted)
+                    Text("Payment method (tap one)", style = MaterialTheme.typography.labelLarge, color = colors.muted)
                     Spacer(Modifier.height(8.dp))
                     ChipFlow(
                         items = state.paymentMethods.map { it to it },
@@ -170,21 +181,24 @@ fun AddTransactionScreen(
 
 @Composable
 private fun TypeToggle(selected: TransactionType, onSelect: (TransactionType) -> Unit) {
+    val colors = BudgetTheme.colors
     Card(
-        colors = CardDefaults.cardColors(containerColor = SurfaceWell),
+        colors = CardDefaults.cardColors(containerColor = colors.surfaceWell),
         shape = RoundedCornerShape(14.dp)
     ) {
         Row(Modifier.padding(4.dp)) {
             ToggleButton(
-                label = "💰 Income",
+                label = "Income",
+                icon = Icons.Outlined.ArrowCircleUp,
                 active = selected == TransactionType.INCOME,
-                activeColor = Income,
+                activeColor = colors.income,
                 modifier = Modifier.weight(1f)
             ) { onSelect(TransactionType.INCOME) }
             ToggleButton(
-                label = "💸 Expense",
+                label = "Expense",
+                icon = Icons.Outlined.ArrowCircleDown,
                 active = selected == TransactionType.EXPENSE,
-                activeColor = Expense,
+                activeColor = colors.expense,
                 modifier = Modifier.weight(1f)
             ) { onSelect(TransactionType.EXPENSE) }
         }
@@ -194,26 +208,58 @@ private fun TypeToggle(selected: TransactionType, onSelect: (TransactionType) ->
 @Composable
 private fun ToggleButton(
     label: String,
+    icon: ImageVector,
     active: Boolean,
     activeColor: Color,
     modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
-    val colors = if (active) {
+    val colors = BudgetTheme.colors
+    val buttonColors = if (active) {
         ButtonDefaults.buttonColors(containerColor = activeColor, contentColor = Color(0xFF06301F))
     } else {
         ButtonDefaults.buttonColors(
             containerColor = Color.Transparent,
-            contentColor = Muted
+            contentColor = colors.muted
         )
     }
     Button(
         onClick = onClick,
         modifier = modifier,
-        colors = colors,
+        colors = buttonColors,
         shape = RoundedCornerShape(10.dp)
     ) {
+        Icon(icon, contentDescription = null, modifier = Modifier.height(16.dp))
+        Spacer(Modifier.width(6.dp))
         Text(label, fontWeight = FontWeight.SemiBold)
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun CategoryChipFlow(
+    categories: List<CategoryEntity>,
+    selected: String?,
+    onSelect: (String) -> Unit
+) {
+    val colors = BudgetTheme.colors
+    FlowRow(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        categories.forEach { category ->
+            FilterChip(
+                selected = category.id == selected,
+                onClick = { onSelect(category.id) },
+                label = { Text(category.name) },
+                leadingIcon = { Icon(categoryIcon(category), contentDescription = null, modifier = Modifier.height(16.dp)) },
+                colors = FilterChipDefaults.filterChipColors(
+                    selectedContainerColor = colors.expense,
+                    selectedLabelColor = Color(0xFF3A1400),
+                    selectedLeadingIconColor = Color(0xFF3A1400)
+                )
+            )
+        }
     }
 }
 
@@ -224,6 +270,7 @@ private fun ChipFlow(
     selected: String?,
     onSelect: (String) -> Unit
 ) {
+    val colors = BudgetTheme.colors
     FlowRow(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -234,7 +281,7 @@ private fun ChipFlow(
                 onClick = { onSelect(id) },
                 label = { Text(label) },
                 colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = Expense,
+                    selectedContainerColor = colors.expense,
                     selectedLabelColor = Color(0xFF3A1400)
                 )
             )

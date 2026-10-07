@@ -16,10 +16,14 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.outlined.Contrast
+import androidx.compose.material.icons.outlined.DarkMode
+import androidx.compose.material.icons.outlined.LightMode
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -44,8 +48,9 @@ import com.akrishna87.budgettracker.data.db.CategoryEntity
 import com.akrishna87.budgettracker.ui.components.ElevatedPanel
 import com.akrishna87.budgettracker.ui.components.IconBadge
 import com.akrishna87.budgettracker.ui.components.LocalSnackbarHostState
-import com.akrishna87.budgettracker.ui.theme.Danger
-import com.akrishna87.budgettracker.ui.theme.Muted
+import com.akrishna87.budgettracker.ui.components.categoryIcon
+import com.akrishna87.budgettracker.ui.theme.BudgetTheme
+import com.akrishna87.budgettracker.ui.theme.ThemeMode
 import com.akrishna87.budgettracker.util.formatMoney
 import kotlinx.coroutines.launch
 
@@ -57,6 +62,7 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
     var pendingDelete by remember { mutableStateOf<CategoryEntity?>(null) }
     val snackbarHostState = LocalSnackbarHostState.current
     val scope = rememberCoroutineScope()
+    val colors = BudgetTheme.colors
 
     LazyColumn(
         modifier = Modifier
@@ -65,6 +71,13 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
         contentPadding = PaddingValues(vertical = 16.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
+        item {
+            AppearanceSection(
+                themeMode = viewModel.themeMode,
+                onSelect = viewModel::setThemeMode
+            )
+        }
+
         item {
             SecuritySection(
                 isLockEnabled = isLockEnabled,
@@ -76,7 +89,7 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
         item {
             Text(
                 "Set a monthly budget per category to track it on the Dashboard. Leave budget at 0 for no limit.",
-                color = Muted,
+                color = colors.muted,
                 style = MaterialTheme.typography.bodyMedium
             )
         }
@@ -85,8 +98,8 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
             if (editingCategory?.id == category.id) {
                 CategoryEditRow(
                     initial = category,
-                    onSave = { name, emoji, budget ->
-                        viewModel.updateCategory(category, name, emoji, budget)
+                    onSave = { name, budget ->
+                        viewModel.updateCategory(category, name, budget)
                         editingCategory = null
                     },
                     onCancel = { editingCategory = null }
@@ -134,6 +147,7 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
 
 @Composable
 private fun CategoryRow(category: CategoryEntity, onEdit: () -> Unit, onDelete: () -> Unit) {
+    val colors = BudgetTheme.colors
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         shape = RoundedCornerShape(14.dp),
@@ -144,15 +158,15 @@ private fun CategoryRow(category: CategoryEntity, onEdit: () -> Unit, onDelete: 
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            IconBadge(emoji = category.emoji)
+            IconBadge(icon = categoryIcon(category))
             Text(category.name, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
             Text(
                 if (category.budget > 0) "Budget: ${formatMoney(category.budget)}" else "No budget",
-                color = Muted,
+                color = colors.muted,
                 style = MaterialTheme.typography.bodyMedium
             )
             IconButton(onClick = onEdit) { Icon(Icons.Filled.Edit, contentDescription = "Edit") }
-            IconButton(onClick = onDelete) { Icon(Icons.Filled.Delete, contentDescription = "Delete", tint = Danger) }
+            IconButton(onClick = onDelete) { Icon(Icons.Filled.Delete, contentDescription = "Delete", tint = colors.danger) }
         }
     }
 }
@@ -160,10 +174,9 @@ private fun CategoryRow(category: CategoryEntity, onEdit: () -> Unit, onDelete: 
 @Composable
 private fun CategoryEditRow(
     initial: CategoryEntity,
-    onSave: (String, String, Double) -> Unit,
+    onSave: (String, Double) -> Unit,
     onCancel: () -> Unit
 ) {
-    var emoji by remember { mutableStateOf(initial.emoji) }
     var name by remember { mutableStateOf(initial.name) }
     var budget by remember { mutableStateOf(if (initial.budget > 0) initial.budget.toString() else "") }
 
@@ -173,10 +186,7 @@ private fun CategoryEditRow(
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(value = emoji, onValueChange = { emoji = it }, modifier = Modifier.width(70.dp), label = { Text("Icon") })
-                OutlinedTextField(value = name, onValueChange = { name = it }, modifier = Modifier.weight(1f), label = { Text("Name") })
-            }
+            OutlinedTextField(value = name, onValueChange = { name = it }, modifier = Modifier.fillMaxWidth(), label = { Text("Name") })
             OutlinedTextField(
                 value = budget,
                 onValueChange = { budget = it },
@@ -184,7 +194,7 @@ private fun CategoryEditRow(
                 label = { Text("Monthly budget (optional)") }
             )
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = { onSave(name, emoji, budget.toDoubleOrNull() ?: 0.0) }) { Text("Save") }
+                Button(onClick = { onSave(name, budget.toDoubleOrNull() ?: 0.0) }) { Text("Save") }
                 TextButton(onClick = onCancel) { Text("Cancel") }
             }
         }
@@ -192,18 +202,19 @@ private fun CategoryEditRow(
 }
 
 @Composable
-private fun AddCategoryRow(onAdd: (String, String, Double) -> Unit) {
-    var emoji by remember { mutableStateOf("⭐") }
+private fun AddCategoryRow(onAdd: (String, Double) -> Unit) {
     var name by remember { mutableStateOf("") }
     var budget by remember { mutableStateOf("") }
 
     ElevatedPanel(contentPadding = 14) {
         Text("Add category", style = MaterialTheme.typography.titleMedium)
         Spacer(Modifier.height(10.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedTextField(value = emoji, onValueChange = { emoji = it }, modifier = Modifier.width(70.dp), label = { Text("Icon") })
-            OutlinedTextField(value = name, onValueChange = { name = it }, modifier = Modifier.weight(1f), label = { Text("Name") })
-        }
+        OutlinedTextField(
+            value = name,
+            onValueChange = { name = it },
+            modifier = Modifier.fillMaxWidth(),
+            label = { Text("Name") }
+        )
         Spacer(Modifier.height(8.dp))
         OutlinedTextField(
             value = budget,
@@ -215,12 +226,48 @@ private fun AddCategoryRow(onAdd: (String, String, Double) -> Unit) {
         Button(
             modifier = Modifier.fillMaxWidth(),
             onClick = {
-                onAdd(name, emoji, budget.toDoubleOrNull() ?: 0.0)
+                onAdd(name, budget.toDoubleOrNull() ?: 0.0)
                 name = ""
                 budget = ""
-                emoji = "⭐"
             }
         ) { Text("Add category") }
+    }
+}
+
+@Composable
+private fun AppearanceSection(
+    themeMode: ThemeMode,
+    onSelect: (ThemeMode) -> Unit
+) {
+    ElevatedPanel {
+        Text("Appearance", fontWeight = FontWeight.SemiBold)
+        Spacer(Modifier.height(4.dp))
+        Text(
+            "Choose how the app looks.",
+            color = BudgetTheme.colors.muted,
+            style = MaterialTheme.typography.bodySmall
+        )
+        Spacer(Modifier.height(10.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FilterChip(
+                selected = themeMode == ThemeMode.SYSTEM,
+                onClick = { onSelect(ThemeMode.SYSTEM) },
+                label = { Text("System") },
+                leadingIcon = { Icon(Icons.Outlined.Contrast, contentDescription = null, modifier = Modifier.height(16.dp)) }
+            )
+            FilterChip(
+                selected = themeMode == ThemeMode.LIGHT,
+                onClick = { onSelect(ThemeMode.LIGHT) },
+                label = { Text("Light") },
+                leadingIcon = { Icon(Icons.Outlined.LightMode, contentDescription = null, modifier = Modifier.height(16.dp)) }
+            )
+            FilterChip(
+                selected = themeMode == ThemeMode.DARK,
+                onClick = { onSelect(ThemeMode.DARK) },
+                label = { Text("Dark") },
+                leadingIcon = { Icon(Icons.Outlined.DarkMode, contentDescription = null, modifier = Modifier.height(16.dp)) }
+            )
+        }
     }
 }
 
@@ -242,7 +289,7 @@ private fun SecuritySection(
                 Text("App lock", fontWeight = FontWeight.SemiBold)
                 Text(
                     "Require biometrics or a PIN to open the app.",
-                    color = Muted,
+                    color = BudgetTheme.colors.muted,
                     style = MaterialTheme.typography.bodySmall
                 )
             }
@@ -269,6 +316,7 @@ private fun PinSetupDialog(onConfirm: (String) -> Unit, onDismiss: () -> Unit) {
     var pin by remember { mutableStateOf("") }
     var confirmPin by remember { mutableStateOf("") }
     var error by remember { mutableStateOf<String?>(null) }
+    val colors = BudgetTheme.colors
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -277,7 +325,7 @@ private fun PinSetupDialog(onConfirm: (String) -> Unit, onDismiss: () -> Unit) {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
                     "Used as a fallback if biometrics aren't available.",
-                    color = Muted,
+                    color = colors.muted,
                     style = MaterialTheme.typography.bodySmall
                 )
                 OutlinedTextField(
@@ -296,7 +344,7 @@ private fun PinSetupDialog(onConfirm: (String) -> Unit, onDismiss: () -> Unit) {
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
                     modifier = Modifier.fillMaxWidth()
                 )
-                error?.let { Text(it, color = Danger, style = MaterialTheme.typography.bodySmall) }
+                error?.let { Text(it, color = colors.danger, style = MaterialTheme.typography.bodySmall) }
             }
         },
         confirmButton = {

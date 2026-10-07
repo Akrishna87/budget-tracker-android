@@ -6,6 +6,8 @@ import com.akrishna87.budgettracker.data.db.CategoryEntity
 import com.akrishna87.budgettracker.data.repository.BudgetRepository
 import com.akrishna87.budgettracker.security.PinHashing
 import com.akrishna87.budgettracker.security.SecurityPrefs
+import com.akrishna87.budgettracker.ui.theme.ThemeController
+import com.akrishna87.budgettracker.ui.theme.ThemeMode
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -17,7 +19,8 @@ import java.util.UUID
 
 class SettingsViewModel(
     private val repository: BudgetRepository,
-    private val securityPrefs: SecurityPrefs
+    private val securityPrefs: SecurityPrefs,
+    private val themeController: ThemeController
 ) : ViewModel() {
 
     val categories: StateFlow<List<CategoryEntity>> = repository.observeCategories()
@@ -26,6 +29,12 @@ class SettingsViewModel(
 
     private val _isLockEnabled = MutableStateFlow(securityPrefs.isLockEnabled)
     val isLockEnabled: StateFlow<Boolean> = _isLockEnabled.asStateFlow()
+
+    val themeMode: ThemeMode get() = themeController.mode
+
+    fun setThemeMode(mode: ThemeMode) {
+        themeController.setMode(mode)
+    }
 
     fun setPinAndEnableLock(pin: String) {
         val salt = PinHashing.generateSalt()
@@ -40,7 +49,7 @@ class SettingsViewModel(
         _isLockEnabled.value = false
     }
 
-    fun addCategory(name: String, emoji: String, budget: Double) {
+    fun addCategory(name: String, budget: Double) {
         if (name.isBlank()) return
         viewModelScope.launch {
             val nextOrder = (categories.value.maxOfOrNull { it.sortOrder } ?: -1) + 1
@@ -48,7 +57,7 @@ class SettingsViewModel(
                 CategoryEntity(
                     id = UUID.randomUUID().toString(),
                     name = name.trim(),
-                    emoji = emoji.ifBlank { "⭐" },
+                    emoji = "",
                     budget = budget,
                     sortOrder = nextOrder
                 )
@@ -56,10 +65,10 @@ class SettingsViewModel(
         }
     }
 
-    fun updateCategory(category: CategoryEntity, name: String, emoji: String, budget: Double) {
+    fun updateCategory(category: CategoryEntity, name: String, budget: Double) {
         if (name.isBlank()) return
         viewModelScope.launch {
-            repository.upsertCategory(category.copy(name = name.trim(), emoji = emoji.ifBlank { "⭐" }, budget = budget))
+            repository.upsertCategory(category.copy(name = name.trim(), budget = budget))
         }
     }
 

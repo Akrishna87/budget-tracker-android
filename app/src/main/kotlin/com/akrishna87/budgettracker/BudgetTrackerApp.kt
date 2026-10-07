@@ -10,6 +10,7 @@ import com.akrishna87.budgettracker.data.repository.BudgetRepository
 import com.akrishna87.budgettracker.notifications.BillReminderWorker
 import com.akrishna87.budgettracker.notifications.createBillReminderChannel
 import com.akrishna87.budgettracker.security.SecurityPrefs
+import com.akrishna87.budgettracker.ui.theme.ThemeController
 import java.util.concurrent.TimeUnit
 
 class BudgetTrackerApp : Application() {
@@ -17,6 +18,8 @@ class BudgetTrackerApp : Application() {
     lateinit var repository: BudgetRepository
         private set
     lateinit var securityPrefs: SecurityPrefs
+        private set
+    lateinit var themeController: ThemeController
         private set
 
     override fun onCreate() {
@@ -30,6 +33,7 @@ class BudgetTrackerApp : Application() {
             database.savingsGoalDao()
         )
         securityPrefs = SecurityPrefs(this)
+        themeController = ThemeController(this)
 
         createBillReminderChannel(this)
         scheduleBillReminders()

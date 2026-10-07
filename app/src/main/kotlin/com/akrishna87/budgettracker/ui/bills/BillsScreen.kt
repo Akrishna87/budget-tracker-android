@@ -16,6 +16,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.outlined.ReceiptLong
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
@@ -46,10 +47,8 @@ import com.akrishna87.budgettracker.ui.components.ElevatedPanel
 import com.akrishna87.budgettracker.ui.components.EmptyState
 import com.akrishna87.budgettracker.ui.components.IconBadge
 import com.akrishna87.budgettracker.ui.components.LocalSnackbarHostState
-import com.akrishna87.budgettracker.ui.theme.Danger
-import com.akrishna87.budgettracker.ui.theme.Income
-import com.akrishna87.budgettracker.ui.theme.Muted
-import com.akrishna87.budgettracker.ui.theme.Warn
+import com.akrishna87.budgettracker.ui.components.categoryIcon
+import com.akrishna87.budgettracker.ui.theme.BudgetTheme
 import com.akrishna87.budgettracker.util.formatMoney
 import kotlinx.coroutines.launch
 
@@ -61,6 +60,7 @@ fun BillsScreen(viewModel: BillsViewModel) {
     var showAdd by remember { mutableStateOf(false) }
     val snackbarHostState = LocalSnackbarHostState.current
     val scope = rememberCoroutineScope()
+    val colors = BudgetTheme.colors
 
     LazyColumn(
         modifier = Modifier
@@ -72,14 +72,14 @@ fun BillsScreen(viewModel: BillsViewModel) {
         item {
             Text(
                 "Recurring bills and subscriptions. You'll get a reminder a few days before each is due.",
-                color = Muted,
+                color = colors.muted,
                 style = MaterialTheme.typography.bodyMedium
             )
         }
 
         if (state.bills.isEmpty()) {
             item {
-                EmptyState(emoji = "🧾", text = "No recurring bills yet.")
+                EmptyState(icon = Icons.Outlined.ReceiptLong, text = "No recurring bills yet.")
             }
         } else {
             items(state.bills, key = { it.bill.id }) { item ->
@@ -159,6 +159,7 @@ private fun BillRow(
     onEdit: () -> Unit,
     onDelete: () -> Unit
 ) {
+    val colors = BudgetTheme.colors
     val bill = item.bill
     val statusText = when {
         item.paidThisCycle -> "Paid for this cycle"
@@ -168,10 +169,10 @@ private fun BillRow(
         else -> "Due in ${item.daysUntilDue} days"
     }
     val statusColor = when {
-        item.paidThisCycle -> Income
-        item.daysUntilDue < 0 -> Danger
-        item.daysUntilDue <= bill.reminderDaysBefore -> Warn
-        else -> Muted
+        item.paidThisCycle -> colors.income
+        item.daysUntilDue < 0 -> colors.danger
+        item.daysUntilDue <= bill.reminderDaysBefore -> colors.warn
+        else -> colors.muted
     }
 
     ElevatedPanel(contentPadding = 14) {
@@ -180,13 +181,13 @@ private fun BillRow(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            IconBadge(emoji = item.category?.emoji ?: "🧾", tint = statusColor)
+            IconBadge(icon = item.category?.let { categoryIcon(it) } ?: Icons.Outlined.ReceiptLong, tint = statusColor)
             Column(Modifier.weight(1f)) {
                 Text(bill.name, fontWeight = FontWeight.SemiBold)
-                Text(formatMoney(bill.amount), color = Muted, style = MaterialTheme.typography.bodyMedium)
+                Text(formatMoney(bill.amount), color = colors.muted, style = MaterialTheme.typography.bodyMedium)
             }
             IconButton(onClick = onEdit) { Icon(Icons.Filled.Edit, contentDescription = "Edit") }
-            IconButton(onClick = onDelete) { Icon(Icons.Filled.Delete, contentDescription = "Delete", tint = Danger) }
+            IconButton(onClick = onDelete) { Icon(Icons.Filled.Delete, contentDescription = "Delete", tint = colors.danger) }
         }
         Spacer(Modifier.height(10.dp))
         Row(
@@ -279,7 +280,7 @@ private fun CategoryPicker(
     onSelect: (String?) -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
-    val label = categories.find { it.id == selectedId }?.let { "${it.emoji} ${it.name}" } ?: "No category"
+    val label = categories.find { it.id == selectedId }?.name ?: "No category"
     Box {
         OutlinedButton(onClick = { expanded = true }, modifier = Modifier.fillMaxWidth()) {
             Text(label, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -288,7 +289,8 @@ private fun CategoryPicker(
             DropdownMenuItem(text = { Text("No category") }, onClick = { onSelect(null); expanded = false })
             categories.forEach { cat ->
                 DropdownMenuItem(
-                    text = { Text("${cat.emoji} ${cat.name}") },
+                    text = { Text(cat.name) },
+                    leadingIcon = { Icon(categoryIcon(cat), contentDescription = null) },
                     onClick = { onSelect(cat.id); expanded = false }
                 )
             }

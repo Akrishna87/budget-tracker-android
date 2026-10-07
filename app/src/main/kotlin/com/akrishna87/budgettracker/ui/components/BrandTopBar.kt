@@ -21,9 +21,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.akrishna87.budgettracker.ui.theme.Accent
-import com.akrishna87.budgettracker.ui.theme.AccentOnColor
-import com.akrishna87.budgettracker.ui.theme.AccentSecondary
-import com.akrishna87.budgettracker.ui.theme.Surface
+import com.akrishna87.budgettracker.ui.theme.BudgetTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -46,7 +44,7 @@ fun BrandTopBar(title: String, onBack: (() -> Unit)? = null) {
             }
         },
         colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = Surface,
+            containerColor = MaterialTheme.colorScheme.surface,
             titleContentColor = MaterialTheme.colorScheme.onSurface
         )
     )
@@ -54,15 +52,16 @@ fun BrandTopBar(title: String, onBack: (() -> Unit)? = null) {
 
 @Composable
 private fun BrandBadge() {
+    val colors = BudgetTheme.colors
     Box(
         modifier = Modifier
             .size(34.dp)
             .background(
-                Brush.linearGradient(listOf(Accent, AccentSecondary)),
+                Brush.linearGradient(listOf(Accent, colors.accentSecondary)),
                 RoundedCornerShape(10.dp)
             ),
         contentAlignment = Alignment.Center
     ) {
-        Text("₹", color = AccentOnColor, fontWeight = FontWeight.Black, fontSize = 17.sp)
+        Text("₹", color = colors.accentOnColor, fontWeight = FontWeight.Black, fontSize = 17.sp)
     }
 }

@@ -8,7 +8,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material3.Button
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -25,7 +28,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
-import com.akrishna87.budgettracker.ui.theme.Danger
+import com.akrishna87.budgettracker.ui.theme.BudgetTheme
 
 @Composable
 fun LockScreen(
@@ -35,6 +38,7 @@ fun LockScreen(
 ) {
     var pin by remember { mutableStateOf("") }
     var error by remember { mutableStateOf(false) }
+    val colors = BudgetTheme.colors
 
     LaunchedEffect(Unit) {
         if (biometricAvailable) onRequestBiometric()
@@ -48,7 +52,7 @@ fun LockScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            Text("🔒", style = MaterialTheme.typography.displayMedium)
+            Icon(Icons.Outlined.Lock, contentDescription = null, tint = colors.muted, modifier = Modifier.height(40.dp))
             Spacer(Modifier.height(12.dp))
             Text("Budget Tracker is locked", style = MaterialTheme.typography.titleLarge)
             Spacer(Modifier.height(24.dp))
@@ -66,7 +70,7 @@ fun LockScreen(
             )
             if (error) {
                 Spacer(Modifier.height(6.dp))
-                Text("Incorrect PIN", color = Danger, style = MaterialTheme.typography.bodySmall)
+                Text("Incorrect PIN", color = colors.danger, style = MaterialTheme.typography.bodySmall)
             }
             Spacer(Modifier.height(16.dp))
             Button(

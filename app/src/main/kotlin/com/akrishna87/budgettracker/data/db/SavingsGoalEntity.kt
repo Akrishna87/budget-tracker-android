@@ -8,6 +8,7 @@ data class SavingsGoalEntity(
     @PrimaryKey
     val id: String,
     val name: String,
+    /** Unused: all goals render a fixed Icons.Outlined.Flag. Kept only for schema compatibility. */
     val emoji: String = "🎯",
     val targetAmount: Double,
     val savedAmount: Double = 0.0,

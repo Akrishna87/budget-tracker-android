@@ -9,12 +9,16 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.outlined.ArrowCircleDown
+import androidx.compose.material.icons.outlined.ArrowCircleUp
+import androidx.compose.material.icons.outlined.Inbox
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
@@ -37,15 +41,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.akrishna87.budgettracker.data.db.CategoryEntity
 import com.akrishna87.budgettracker.data.db.TransactionEntity
 import com.akrishna87.budgettracker.data.db.TransactionType
 import com.akrishna87.budgettracker.ui.components.EmptyState
 import com.akrishna87.budgettracker.ui.components.IconBadge
 import com.akrishna87.budgettracker.ui.components.LocalSnackbarHostState
-import com.akrishna87.budgettracker.ui.theme.Danger
-import com.akrishna87.budgettracker.ui.theme.Expense
-import com.akrishna87.budgettracker.ui.theme.Income
-import com.akrishna87.budgettracker.ui.theme.Muted
+import com.akrishna87.budgettracker.ui.components.categoryIcon
+import com.akrishna87.budgettracker.ui.theme.BudgetTheme
 import com.akrishna87.budgettracker.util.formatDateLong
 import com.akrishna87.budgettracker.util.formatMoney
 import com.akrishna87.budgettracker.util.monthLabel
@@ -72,8 +75,18 @@ fun HistoryScreen(
         item {
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 FilterChip(selected = state.filter.type == TypeFilter.ALL, onClick = { viewModel.setTypeFilter(TypeFilter.ALL) }, label = { Text("All") })
-                FilterChip(selected = state.filter.type == TypeFilter.INCOME, onClick = { viewModel.setTypeFilter(TypeFilter.INCOME) }, label = { Text("💰 Income") })
-                FilterChip(selected = state.filter.type == TypeFilter.EXPENSE, onClick = { viewModel.setTypeFilter(TypeFilter.EXPENSE) }, label = { Text("💸 Expense") })
+                FilterChip(
+                    selected = state.filter.type == TypeFilter.INCOME,
+                    onClick = { viewModel.setTypeFilter(TypeFilter.INCOME) },
+                    label = { Text("Income") },
+                    leadingIcon = { Icon(Icons.Outlined.ArrowCircleUp, contentDescription = null, modifier = Modifier.height(16.dp)) }
+                )
+                FilterChip(
+                    selected = state.filter.type == TypeFilter.EXPENSE,
+                    onClick = { viewModel.setTypeFilter(TypeFilter.EXPENSE) },
+                    label = { Text("Expense") },
+                    leadingIcon = { Icon(Icons.Outlined.ArrowCircleDown, contentDescription = null, modifier = Modifier.height(16.dp)) }
+                )
             }
         }
 
@@ -105,7 +118,7 @@ fun HistoryScreen(
 
         if (state.transactions.isEmpty()) {
             item {
-                EmptyState(emoji = "🗂️", text = "No entries match these filters.")
+                EmptyState(icon = Icons.Outlined.Inbox, text = "No entries match these filters.")
             }
         } else {
             items(state.transactions, key = { it.id }) { tx ->
@@ -148,19 +161,20 @@ fun HistoryScreen(
 @Composable
 private fun CategoryFilterDropdown(
     selectedId: String?,
-    categories: List<com.akrishna87.budgettracker.data.db.CategoryEntity>,
+    categories: List<CategoryEntity>,
     onSelect: (String?) -> Unit,
     modifier: Modifier = Modifier
 ) {
     var expanded by remember { mutableStateOf(false) }
-    val label = categories.find { it.id == selectedId }?.let { "${it.emoji} ${it.name}" } ?: "All categories"
+    val label = categories.find { it.id == selectedId }?.name ?: "All categories"
     Box(modifier) {
         DropdownFilterButton(label = label, onClick = { expanded = true })
         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             DropdownMenuItem(text = { Text("All categories") }, onClick = { onSelect(null); expanded = false })
             categories.forEach { cat ->
                 DropdownMenuItem(
-                    text = { Text("${cat.emoji} ${cat.name}") },
+                    text = { Text(cat.name) },
+                    leadingIcon = { Icon(categoryIcon(cat), contentDescription = null) },
                     onClick = { onSelect(cat.id); expanded = false }
                 )
             }
@@ -204,10 +218,11 @@ private fun DropdownFilterButton(label: String, onClick: () -> Unit) {
 @Composable
 private fun TransactionRow(
     transaction: TransactionEntity,
-    category: com.akrishna87.budgettracker.data.db.CategoryEntity?,
+    category: CategoryEntity?,
     onEdit: () -> Unit,
     onDeleteRequested: () -> Unit
 ) {
+    val colors = BudgetTheme.colors
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         shape = RoundedCornerShape(14.dp),
@@ -218,8 +233,12 @@ private fun TransactionRow(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            val emoji = if (transaction.type == TransactionType.INCOME) "💰" else category?.emoji ?: "💸"
-            IconBadge(emoji = emoji, tint = if (transaction.type == TransactionType.INCOME) Income else Expense)
+            val icon = if (transaction.type == TransactionType.INCOME) {
+                Icons.Outlined.ArrowCircleUp
+            } else {
+                category?.let { categoryIcon(it) } ?: Icons.Outlined.ArrowCircleDown
+            }
+            IconBadge(icon = icon, tint = if (transaction.type == TransactionType.INCOME) colors.income else colors.expense)
 
             Column(Modifier.weight(1f)) {
                 val title = if (transaction.type == TransactionType.INCOME) {
@@ -231,12 +250,12 @@ private fun TransactionRow(
                 val subParts = mutableListOf(formatDateLong(transaction.date))
                 if (transaction.type == TransactionType.EXPENSE) transaction.paymentMethod?.let { subParts.add(it) }
                 if (transaction.note.isNotBlank()) subParts.add(transaction.note)
-                Text(subParts.joinToString(" · "), color = Muted, style = MaterialTheme.typography.bodyMedium)
+                Text(subParts.joinToString(" · "), color = colors.muted, style = MaterialTheme.typography.bodyMedium)
             }
 
             Text(
                 (if (transaction.type == TransactionType.INCOME) "+" else "-") + formatMoney(transaction.amount),
-                color = if (transaction.type == TransactionType.INCOME) Income else Expense,
+                color = if (transaction.type == TransactionType.INCOME) colors.income else colors.expense,
                 fontWeight = FontWeight.Bold
             )
 
@@ -244,7 +263,7 @@ private fun TransactionRow(
                 Icon(Icons.Filled.Edit, contentDescription = "Edit")
             }
             IconButton(onClick = onDeleteRequested) {
-                Icon(Icons.Filled.Delete, contentDescription = "Delete", tint = Danger)
+                Icon(Icons.Filled.Delete, contentDescription = "Delete", tint = colors.danger)
             }
         }
     }

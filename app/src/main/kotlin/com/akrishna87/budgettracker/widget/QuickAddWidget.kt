@@ -18,7 +18,7 @@ import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
 import com.akrishna87.budgettracker.MainActivity
 import com.akrishna87.budgettracker.ui.theme.Accent
-import com.akrishna87.budgettracker.ui.theme.AccentOnColor
+import com.akrishna87.budgettracker.ui.theme.DarkBudgetColors
 
 class QuickAddWidget : GlanceAppWidget() {
     override suspend fun provideGlance(context: Context, id: GlanceId) {
@@ -38,7 +38,7 @@ class QuickAddWidget : GlanceAppWidget() {
                 Text(
                     "+ Add expense",
                     style = TextStyle(
-                        color = ColorProvider(AccentOnColor),
+                        color = ColorProvider(DarkBudgetColors.accentOnColor),
                         fontWeight = FontWeight.Bold
                     )
                 )
