@@ -79,4 +79,8 @@ class HistoryViewModel(private val repository: BudgetRepository) : ViewModel() {
     fun deleteTransaction(id: String) {
         viewModelScope.launch { repository.deleteTransaction(id) }
     }
+
+    fun restoreTransaction(transaction: TransactionEntity) {
+        viewModelScope.launch { repository.upsertTransaction(transaction) }
+    }
 }

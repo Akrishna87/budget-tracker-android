@@ -32,6 +32,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -42,9 +43,11 @@ import androidx.compose.ui.unit.dp
 import com.akrishna87.budgettracker.data.db.CategoryEntity
 import com.akrishna87.budgettracker.ui.components.ElevatedPanel
 import com.akrishna87.budgettracker.ui.components.IconBadge
+import com.akrishna87.budgettracker.ui.components.LocalSnackbarHostState
 import com.akrishna87.budgettracker.ui.theme.Danger
 import com.akrishna87.budgettracker.ui.theme.Muted
 import com.akrishna87.budgettracker.util.formatMoney
+import kotlinx.coroutines.launch
 
 @Composable
 fun SettingsScreen(viewModel: SettingsViewModel) {
@@ -52,6 +55,8 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
     val isLockEnabled by viewModel.isLockEnabled.collectAsState()
     var editingCategory by remember { mutableStateOf<CategoryEntity?>(null) }
     var pendingDelete by remember { mutableStateOf<CategoryEntity?>(null) }
+    val snackbarHostState = LocalSnackbarHostState.current
+    val scope = rememberCoroutineScope()
 
     LazyColumn(
         modifier = Modifier
@@ -109,6 +114,15 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
                 TextButton(onClick = {
                     viewModel.deleteCategory(category)
                     pendingDelete = null
+                    scope.launch {
+                        val result = snackbarHostState.showSnackbar(
+                            message = "\"${category.name}\" deleted",
+                            actionLabel = "Undo"
+                        )
+                        if (result == androidx.compose.material3.SnackbarResult.ActionPerformed) {
+                            viewModel.restoreCategory(category)
+                        }
+                    }
                 }) { Text("Delete") }
             },
             dismissButton = {

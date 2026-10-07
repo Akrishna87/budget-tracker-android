@@ -95,6 +95,10 @@ class BillsViewModel(private val repository: BudgetRepository) : ViewModel() {
         viewModelScope.launch { repository.deleteBill(bill) }
     }
 
+    fun restoreBill(bill: RecurringBillEntity) {
+        viewModelScope.launch { repository.upsertBill(bill) }
+    }
+
     fun markPaid(bill: RecurringBillEntity) {
         viewModelScope.launch {
             repository.upsertTransaction(

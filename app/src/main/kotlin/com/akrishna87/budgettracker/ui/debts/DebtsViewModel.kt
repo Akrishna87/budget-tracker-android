@@ -63,6 +63,10 @@ class DebtsViewModel(private val repository: BudgetRepository) : ViewModel() {
         viewModelScope.launch { repository.deleteDebt(account) }
     }
 
+    fun restoreAccount(account: DebtAccountEntity) {
+        viewModelScope.launch { repository.upsertDebt(account) }
+    }
+
     /** Reduces the outstanding balance and logs the money leaving as an expense. */
     fun recordPayment(account: DebtAccountEntity, amount: Double, categoryId: String?) {
         if (amount <= 0.0) return

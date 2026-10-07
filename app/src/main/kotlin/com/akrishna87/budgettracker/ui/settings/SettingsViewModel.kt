@@ -66,4 +66,8 @@ class SettingsViewModel(
     fun deleteCategory(category: CategoryEntity) {
         viewModelScope.launch { repository.deleteCategory(category) }
     }
+
+    fun restoreCategory(category: CategoryEntity) {
+        viewModelScope.launch { repository.upsertCategory(category) }
+    }
 }

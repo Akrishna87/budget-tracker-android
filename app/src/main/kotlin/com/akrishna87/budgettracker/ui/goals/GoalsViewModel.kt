@@ -40,6 +40,10 @@ class GoalsViewModel(private val repository: BudgetRepository) : ViewModel() {
         viewModelScope.launch { repository.deleteSavingsGoal(goal) }
     }
 
+    fun restoreGoal(goal: SavingsGoalEntity) {
+        viewModelScope.launch { repository.upsertSavingsGoal(goal) }
+    }
+
     fun contribute(goal: SavingsGoalEntity, amount: Double) {
         if (amount <= 0.0) return
         viewModelScope.launch {

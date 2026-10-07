@@ -31,6 +31,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -38,7 +39,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.akrishna87.budgettracker.data.db.TransactionEntity
 import com.akrishna87.budgettracker.data.db.TransactionType
+import com.akrishna87.budgettracker.ui.components.EmptyState
 import com.akrishna87.budgettracker.ui.components.IconBadge
+import com.akrishna87.budgettracker.ui.components.LocalSnackbarHostState
 import com.akrishna87.budgettracker.ui.theme.Danger
 import com.akrishna87.budgettracker.ui.theme.Expense
 import com.akrishna87.budgettracker.ui.theme.Income
@@ -46,6 +49,7 @@ import com.akrishna87.budgettracker.ui.theme.Muted
 import com.akrishna87.budgettracker.util.formatDateLong
 import com.akrishna87.budgettracker.util.formatMoney
 import com.akrishna87.budgettracker.util.monthLabel
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -55,6 +59,8 @@ fun HistoryScreen(
 ) {
     val state by viewModel.uiState.collectAsState()
     var pendingDelete by remember { mutableStateOf<TransactionEntity?>(null) }
+    val snackbarHostState = LocalSnackbarHostState.current
+    val scope = rememberCoroutineScope()
 
     LazyColumn(
         modifier = Modifier
@@ -99,12 +105,7 @@ fun HistoryScreen(
 
         if (state.transactions.isEmpty()) {
             item {
-                Text(
-                    "No entries match these filters.",
-                    color = Muted,
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 20.dp),
-                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                )
+                EmptyState(emoji = "🗂️", text = "No entries match these filters.")
             }
         } else {
             items(state.transactions, key = { it.id }) { tx ->
@@ -126,6 +127,15 @@ fun HistoryScreen(
                 TextButton(onClick = {
                     viewModel.deleteTransaction(tx.id)
                     pendingDelete = null
+                    scope.launch {
+                        val result = snackbarHostState.showSnackbar(
+                            message = "Entry deleted",
+                            actionLabel = "Undo"
+                        )
+                        if (result == androidx.compose.material3.SnackbarResult.ActionPerformed) {
+                            viewModel.restoreTransaction(tx)
+                        }
+                    }
                 }) { Text("Delete") }
             },
             dismissButton = {

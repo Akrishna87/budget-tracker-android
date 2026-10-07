@@ -33,24 +33,27 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.akrishna87.budgettracker.data.db.CategoryEntity
 import com.akrishna87.budgettracker.data.db.DebtAccountEntity
 import com.akrishna87.budgettracker.data.db.DebtType
 import com.akrishna87.budgettracker.ui.components.ElevatedPanel
+import com.akrishna87.budgettracker.ui.components.EmptyState
 import com.akrishna87.budgettracker.ui.components.IconBadge
+import com.akrishna87.budgettracker.ui.components.LocalSnackbarHostState
 import com.akrishna87.budgettracker.ui.theme.Danger
 import com.akrishna87.budgettracker.ui.theme.Income
 import com.akrishna87.budgettracker.ui.theme.Muted
 import com.akrishna87.budgettracker.ui.theme.SurfaceWell
 import com.akrishna87.budgettracker.util.formatMoney
+import kotlinx.coroutines.launch
 
 @Composable
 fun DebtsScreen(viewModel: DebtsViewModel) {
@@ -60,6 +63,8 @@ fun DebtsScreen(viewModel: DebtsViewModel) {
     var paymentTarget by remember { mutableStateOf<DebtAccountEntity?>(null) }
     var chargeTarget by remember { mutableStateOf<DebtAccountEntity?>(null) }
     var showAdd by remember { mutableStateOf(false) }
+    val snackbarHostState = LocalSnackbarHostState.current
+    val scope = rememberCoroutineScope()
 
     LazyColumn(
         modifier = Modifier
@@ -78,12 +83,7 @@ fun DebtsScreen(viewModel: DebtsViewModel) {
 
         if (state.accounts.isEmpty()) {
             item {
-                Text(
-                    "No loans or credit cards added yet.",
-                    color = Muted,
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 20.dp),
-                    textAlign = TextAlign.Center
-                )
+                EmptyState(emoji = "💳", text = "No loans or credit cards added yet.")
             }
         } else {
             items(state.accounts, key = { it.id }) { account ->
@@ -137,6 +137,15 @@ fun DebtsScreen(viewModel: DebtsViewModel) {
                 TextButton(onClick = {
                     viewModel.deleteAccount(account)
                     pendingDelete = null
+                    scope.launch {
+                        val result = snackbarHostState.showSnackbar(
+                            message = "\"${account.name}\" deleted",
+                            actionLabel = "Undo"
+                        )
+                        if (result == androidx.compose.material3.SnackbarResult.ActionPerformed) {
+                            viewModel.restoreAccount(account)
+                        }
+                    }
                 }) { Text("Delete") }
             },
             dismissButton = {

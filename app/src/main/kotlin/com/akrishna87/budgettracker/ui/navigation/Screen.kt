@@ -25,6 +25,9 @@ sealed class Screen(val route: String, val label: String, val icon: ImageVector)
     data object Trends : Screen("trends", "Trends", Icons.Filled.TrendingUp)
 
     companion object {
-        val bottomNavItems = listOf(Dashboard, Add, History, Bills, Settings)
+        // Add is reached via the Scaffold's FAB instead of a tab, so the bar
+        // reads as four peer destinations rather than cramming a verb in
+        // next to three nouns.
+        val bottomNavItems = listOf(Dashboard, History, Bills, Settings)
     }
 }
