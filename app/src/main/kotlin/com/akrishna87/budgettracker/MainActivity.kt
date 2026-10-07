@@ -22,6 +22,7 @@ import com.akrishna87.budgettracker.ui.BudgetViewModelFactory
 import com.akrishna87.budgettracker.ui.lock.LockScreen
 import com.akrishna87.budgettracker.ui.navigation.BudgetNavHost
 import com.akrishna87.budgettracker.ui.theme.BudgetTrackerTheme
+import com.akrishna87.budgettracker.widget.QuickAddWidget
 
 class MainActivity : FragmentActivity() {
     private val requestNotificationPermission =
@@ -46,6 +47,7 @@ class MainActivity : FragmentActivity() {
         securityPrefs = app.securityPrefs
         isUnlocked.value = !securityPrefs.isLockEnabled
         val factory = BudgetViewModelFactory(app.repository, securityPrefs)
+        val openAddOnLaunch = intent?.getBooleanExtra(QuickAddWidget.EXTRA_OPEN_ADD, false) ?: false
 
         setContent {
             BudgetTrackerTheme {
@@ -55,7 +57,7 @@ class MainActivity : FragmentActivity() {
                 ) {
                     val unlocked by isUnlocked
                     if (unlocked) {
-                        BudgetNavHost(factory)
+                        BudgetNavHost(factory, openAddOnLaunch = openAddOnLaunch)
                     } else {
                         LockScreen(
                             onVerifyPin = { pin ->

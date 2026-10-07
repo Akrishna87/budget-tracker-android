@@ -8,6 +8,7 @@ import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -41,10 +42,17 @@ import com.akrishna87.budgettracker.ui.trends.TrendsViewModel
 private val secondaryScreens = listOf(Screen.Debts, Screen.Goals, Screen.Trends)
 
 @Composable
-fun BudgetNavHost(factory: BudgetViewModelFactory) {
+fun BudgetNavHost(factory: BudgetViewModelFactory, openAddOnLaunch: Boolean = false) {
     val navController = rememberNavController()
     val addTransactionViewModel: AddTransactionViewModel = viewModel(factory = factory)
     val backStackEntry by navController.currentBackStackEntryAsState()
+
+    LaunchedEffect(Unit) {
+        if (openAddOnLaunch) {
+            addTransactionViewModel.startNew()
+            navController.navigate(Screen.Add.route)
+        }
+    }
     val currentDestination = backStackEntry?.destination
     val isOnBottomNavRoute = Screen.bottomNavItems.any { currentDestination?.hierarchy?.any { d -> d.route == it.route } == true }
     val currentTitle = (Screen.bottomNavItems + secondaryScreens)
