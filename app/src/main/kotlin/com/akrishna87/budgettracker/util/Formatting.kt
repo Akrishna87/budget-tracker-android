@@ -41,6 +41,14 @@ fun monthLabel(monthKey: String): String {
     }
 }
 
+fun shortMonthLabel(monthKey: String): String {
+    return try {
+        LocalDate.parse("$monthKey-01").month.getDisplayName(TextStyle.SHORT, Locale.ENGLISH)
+    } catch (e: Exception) {
+        monthKey
+    }
+}
+
 /** Adds [months] to a "yyyy-MM" key, wrapping the year as needed. */
 fun shiftMonthKey(monthKey: String, months: Int): String {
     return try {

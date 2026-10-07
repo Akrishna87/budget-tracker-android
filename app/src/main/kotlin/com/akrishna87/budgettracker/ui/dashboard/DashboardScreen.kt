@@ -45,7 +45,8 @@ import com.akrishna87.budgettracker.util.shiftMonthKey
 fun DashboardScreen(
     viewModel: DashboardViewModel,
     onOpenDebts: () -> Unit,
-    onOpenGoals: () -> Unit
+    onOpenGoals: () -> Unit,
+    onOpenTrends: () -> Unit
 ) {
     val state by viewModel.uiState.collectAsState()
 
@@ -97,6 +98,17 @@ fun DashboardScreen(
                     modifier = Modifier.weight(1f)
                 )
             }
+        }
+
+        item {
+            ShortcutCard(
+                emoji = "📈",
+                title = "Trends",
+                subtitle = "Month-over-month, net trend, year view",
+                tint = MaterialTheme.colorScheme.primary,
+                onClick = onOpenTrends,
+                modifier = Modifier.fillMaxWidth()
+            )
         }
 
         item {

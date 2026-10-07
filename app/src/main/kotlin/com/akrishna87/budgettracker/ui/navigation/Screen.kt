@@ -8,6 +8,7 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Receipt
 import androidx.compose.material.icons.filled.Savings
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.ui.graphics.vector.ImageVector
 
 sealed class Screen(val route: String, val label: String, val icon: ImageVector) {
@@ -21,6 +22,7 @@ sealed class Screen(val route: String, val label: String, val icon: ImageVector)
     // bar from growing past five items as more features are added.
     data object Debts : Screen("debts", "Debts & Credit Cards", Icons.Filled.CreditCard)
     data object Goals : Screen("goals", "Savings Goals", Icons.Filled.Savings)
+    data object Trends : Screen("trends", "Trends", Icons.Filled.TrendingUp)
 
     companion object {
         val bottomNavItems = listOf(Dashboard, Add, History, Bills, Settings)

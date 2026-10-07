@@ -10,6 +10,7 @@ import com.akrishna87.budgettracker.ui.debts.DebtsViewModel
 import com.akrishna87.budgettracker.ui.goals.GoalsViewModel
 import com.akrishna87.budgettracker.ui.history.HistoryViewModel
 import com.akrishna87.budgettracker.ui.settings.SettingsViewModel
+import com.akrishna87.budgettracker.ui.trends.TrendsViewModel
 
 class BudgetViewModelFactory(private val repository: BudgetRepository) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
@@ -29,6 +30,8 @@ class BudgetViewModelFactory(private val repository: BudgetRepository) : ViewMod
                 DebtsViewModel(repository) as T
             modelClass.isAssignableFrom(GoalsViewModel::class.java) ->
                 GoalsViewModel(repository) as T
+            modelClass.isAssignableFrom(TrendsViewModel::class.java) ->
+                TrendsViewModel(repository) as T
             else -> throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
         }
     }

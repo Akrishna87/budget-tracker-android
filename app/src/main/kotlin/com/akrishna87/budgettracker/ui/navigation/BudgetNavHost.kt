@@ -35,8 +35,10 @@ import com.akrishna87.budgettracker.ui.history.HistoryViewModel
 import com.akrishna87.budgettracker.ui.settings.SettingsScreen
 import com.akrishna87.budgettracker.ui.settings.SettingsViewModel
 import com.akrishna87.budgettracker.ui.theme.Accent
+import com.akrishna87.budgettracker.ui.trends.TrendsScreen
+import com.akrishna87.budgettracker.ui.trends.TrendsViewModel
 
-private val secondaryScreens = listOf(Screen.Debts, Screen.Goals)
+private val secondaryScreens = listOf(Screen.Debts, Screen.Goals, Screen.Trends)
 
 @Composable
 fun BudgetNavHost(factory: BudgetViewModelFactory) {
@@ -99,7 +101,8 @@ fun BudgetNavHost(factory: BudgetViewModelFactory) {
                 DashboardScreen(
                     viewModel = viewModel,
                     onOpenDebts = { navController.navigate(Screen.Debts.route) },
-                    onOpenGoals = { navController.navigate(Screen.Goals.route) }
+                    onOpenGoals = { navController.navigate(Screen.Goals.route) },
+                    onOpenTrends = { navController.navigate(Screen.Trends.route) }
                 )
             }
             composable(Screen.Add.route) {
@@ -140,6 +143,10 @@ fun BudgetNavHost(factory: BudgetViewModelFactory) {
             composable(Screen.Goals.route) {
                 val viewModel: GoalsViewModel = viewModel(factory = factory)
                 GoalsScreen(viewModel)
+            }
+            composable(Screen.Trends.route) {
+                val viewModel: TrendsViewModel = viewModel(factory = factory)
+                TrendsScreen(viewModel)
             }
         }
     }
