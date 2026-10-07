@@ -3,6 +3,7 @@ package com.akrishna87.budgettracker.ui
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.akrishna87.budgettracker.data.repository.BudgetRepository
+import com.akrishna87.budgettracker.security.SecurityPrefs
 import com.akrishna87.budgettracker.ui.addtransaction.AddTransactionViewModel
 import com.akrishna87.budgettracker.ui.bills.BillsViewModel
 import com.akrishna87.budgettracker.ui.dashboard.DashboardViewModel
@@ -12,7 +13,10 @@ import com.akrishna87.budgettracker.ui.history.HistoryViewModel
 import com.akrishna87.budgettracker.ui.settings.SettingsViewModel
 import com.akrishna87.budgettracker.ui.trends.TrendsViewModel
 
-class BudgetViewModelFactory(private val repository: BudgetRepository) : ViewModelProvider.Factory {
+class BudgetViewModelFactory(
+    private val repository: BudgetRepository,
+    private val securityPrefs: SecurityPrefs
+) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         return when {
@@ -23,7 +27,7 @@ class BudgetViewModelFactory(private val repository: BudgetRepository) : ViewMod
             modelClass.isAssignableFrom(HistoryViewModel::class.java) ->
                 HistoryViewModel(repository) as T
             modelClass.isAssignableFrom(SettingsViewModel::class.java) ->
-                SettingsViewModel(repository) as T
+                SettingsViewModel(repository, securityPrefs) as T
             modelClass.isAssignableFrom(BillsViewModel::class.java) ->
                 BillsViewModel(repository) as T
             modelClass.isAssignableFrom(DebtsViewModel::class.java) ->
