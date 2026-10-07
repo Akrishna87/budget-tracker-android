@@ -17,9 +17,9 @@ class ThemeController(context: Context) {
     var mode: ThemeMode by mutableStateOf(readPersisted())
         private set
 
-    fun setMode(mode: ThemeMode) {
-        this.mode = mode
-        prefs.edit().putString(KEY_MODE, mode.name).apply()
+    fun select(newMode: ThemeMode) {
+        mode = newMode
+        prefs.edit().putString(KEY_MODE, newMode.name).apply()
     }
 
     private fun readPersisted(): ThemeMode {

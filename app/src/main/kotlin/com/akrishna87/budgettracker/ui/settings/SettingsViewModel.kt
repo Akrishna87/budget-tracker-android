@@ -33,7 +33,7 @@ class SettingsViewModel(
     val themeMode: ThemeMode get() = themeController.mode
 
     fun setThemeMode(mode: ThemeMode) {
-        themeController.setMode(mode)
+        themeController.select(mode)
     }
 
     fun setPinAndEnableLock(pin: String) {
