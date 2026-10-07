@@ -23,6 +23,21 @@ android {
         versionName = "0.1.$buildNumber"
     }
 
+    signingConfigs {
+        // Overrides AGP's default debug signing config, which otherwise points at
+        // ~/.android/debug.keystore - auto-generated per machine, so every CI run
+        // (a fresh VM each time) was signing with a different random key. That made
+        // every build "update-incompatible" with the last, so installing a new one
+        // without uninstalling the old one first failed with "App not installed."
+        // A committed, stable keystore here means all CI builds share one signature.
+        getByName("debug") {
+            storeFile = file("debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
