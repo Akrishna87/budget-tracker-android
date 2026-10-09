@@ -1,28 +1,26 @@
 # Budget Tracker (Android)
 
-A native Android budget tracker: expenses, income, recurring bills,
-loans/credit cards with outstanding-balance tracking, savings goals, and
-per-category budgets. Kotlin + Jetpack Compose + Room, fully local
-(no account, no internet needed).
+A native Android budget tracker: expenses, income, recurring monthly
+expenses, and per-category budgets. Kotlin + Jetpack Compose + Room,
+fully local (no account, no internet needed).
 
-## Status: all 4 planned stages complete
+## Status: rebuilt as a basic app, more features added incrementally
 
 - Add income/expense entries (amount, date, category/payment method or
   income source, note), with quick-add chips and smart defaults.
 - Editable categories with optional monthly budgets.
-- Dashboard: month picker, income/expense/net, category budget progress,
-  plus shortcuts into debts, savings goals and trends.
+- Dashboard: month picker, income/expense/net, category budget progress
+  — tap a category to see its individual entries.
 - "Repeat last expense" one-tap button, reachable via a FAB.
 - History with filters (type, category, month, note search) and
   edit/delete, with Undo on every delete.
-- Recurring bills/subscriptions with due-date reminder notifications.
-- Loans/credit cards tracked by outstanding principal remaining, with
-  payment/charge recording.
-- Savings goals with contribute/withdraw and a progress bar.
-- Trend analytics: 6-month income/expense bars, a net trend line, and
-  a year view.
-- Optional biometric/PIN app lock (Settings).
-- A home-screen "+ Add expense" quick-add widget.
+- Recurring expenses (rent, subscriptions, etc.): configure a fixed
+  monthly cost once, and it's auto-logged as a real expense on its due
+  day every month — no reminders to act on, no manual "mark paid".
+
+Debts/credit cards, savings goals, trend analytics, app lock, and the
+home-screen widget from an earlier version were cut in this rebuild to
+keep the app simple; any of these can be added back incrementally.
 
 ## Installing the latest build
 

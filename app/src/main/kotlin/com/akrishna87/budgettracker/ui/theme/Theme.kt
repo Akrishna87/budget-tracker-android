@@ -8,8 +8,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.graphics.Color
 
-enum class ThemeMode { SYSTEM, LIGHT, DARK }
-
 /** Accessor mirroring `MaterialTheme` for the semantic colors ColorScheme has no slot for. */
 object BudgetTheme {
     val colors: BudgetColors
@@ -47,15 +45,8 @@ private val LightScheme = lightColorScheme(
 )
 
 @Composable
-fun BudgetTrackerTheme(
-    themeMode: ThemeMode = ThemeMode.SYSTEM,
-    content: @Composable () -> Unit
-) {
-    val darkTheme = when (themeMode) {
-        ThemeMode.SYSTEM -> isSystemInDarkTheme()
-        ThemeMode.LIGHT -> false
-        ThemeMode.DARK -> true
-    }
+fun BudgetTrackerTheme(content: @Composable () -> Unit) {
+    val darkTheme = isSystemInDarkTheme()
     CompositionLocalProvider(LocalBudgetColors provides if (darkTheme) DarkBudgetColors else LightBudgetColors) {
         MaterialTheme(
             colorScheme = if (darkTheme) DarkScheme else LightScheme,

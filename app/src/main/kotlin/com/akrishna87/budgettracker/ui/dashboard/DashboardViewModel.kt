@@ -11,7 +11,6 @@ import com.akrishna87.budgettracker.util.monthKeyOfDate
 import com.akrishna87.budgettracker.util.todayKey
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -28,10 +27,7 @@ data class DashboardUiState(
     val totalExpense: Double = 0.0,
     val categorySpend: List<CategorySpend> = emptyList(),
     val mostRecentExpense: TransactionEntity? = null,
-    val justRepeatedId: String? = null,
-    val totalOutstandingDebt: Double = 0.0,
-    val savingsGoalsCount: Int = 0,
-    val totalSaved: Double = 0.0
+    val justRepeatedId: String? = null
 ) {
     val net: Double get() = totalIncome - totalExpense
 }
@@ -72,10 +68,6 @@ class DashboardViewModel(private val repository: BudgetRepository) : ViewModel()
             mostRecentExpense = mostRecent,
             justRepeatedId = repeatedId
         )
-    }.combine(repository.observeDebts()) { state, debts ->
-        state.copy(totalOutstandingDebt = debts.sumOf { it.outstandingAmount })
-    }.combine(repository.observeSavingsGoals()) { state, goals ->
-        state.copy(savingsGoalsCount = goals.size, totalSaved = goals.sumOf { it.savedAmount })
     }.stateIn(
         scope = viewModelScope,
         started = kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(5000),

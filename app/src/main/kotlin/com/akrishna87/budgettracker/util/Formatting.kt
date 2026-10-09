@@ -57,20 +57,3 @@ fun shiftMonthKey(monthKey: String, months: Int): String {
         monthKey
     }
 }
-
-/**
- * The next occurrence of [dueDayOfMonth] that isn't in a month already covered by
- * [lastPaidMonth] ("yyyy-MM"). Skipping a paid month this way, rather than just
- * taking the closest occurrence on/after [from], means a bill paid ahead of its
- * due date correctly rolls to next month instead of appearing due again immediately.
- */
-fun nextUnpaidDueDate(dueDayOfMonth: Int, lastPaidMonth: String?, from: LocalDate = LocalDate.now()): LocalDate {
-    var candidateMonth = from.withDayOfMonth(1)
-    while (true) {
-        val monthKey = candidateMonth.toString().substring(0, 7)
-        if (monthKey != lastPaidMonth) {
-            return candidateMonth.withDayOfMonth(minOf(dueDayOfMonth, candidateMonth.lengthOfMonth()))
-        }
-        candidateMonth = candidateMonth.plusMonths(1)
-    }
-}

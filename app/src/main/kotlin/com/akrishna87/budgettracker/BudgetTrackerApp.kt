@@ -7,19 +7,12 @@ import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import com.akrishna87.budgettracker.data.db.AppDatabase
 import com.akrishna87.budgettracker.data.repository.BudgetRepository
-import com.akrishna87.budgettracker.notifications.BillReminderWorker
-import com.akrishna87.budgettracker.notifications.createBillReminderChannel
-import com.akrishna87.budgettracker.security.SecurityPrefs
-import com.akrishna87.budgettracker.ui.theme.ThemeController
+import com.akrishna87.budgettracker.work.RecurringExpenseWorker
 import java.util.concurrent.TimeUnit
 
 class BudgetTrackerApp : Application() {
 
     lateinit var repository: BudgetRepository
-        private set
-    lateinit var securityPrefs: SecurityPrefs
-        private set
-    lateinit var themeController: ThemeController
         private set
 
     override fun onCreate() {
@@ -28,26 +21,22 @@ class BudgetTrackerApp : Application() {
         repository = BudgetRepository(
             database.categoryDao(),
             database.transactionDao(),
-            database.recurringBillDao(),
-            database.debtAccountDao(),
-            database.savingsGoalDao()
+            database.recurringExpenseDao()
         )
-        securityPrefs = SecurityPrefs(this)
-        themeController = ThemeController(this)
 
-        createBillReminderChannel(this)
-        scheduleBillReminders()
+        scheduleRecurringExpenseCheck()
     }
 
-    private fun scheduleBillReminders() {
+    private fun scheduleRecurringExpenseCheck() {
         val workManager = WorkManager.getInstance(this)
         workManager.enqueueUniquePeriodicWork(
-            "bill-reminder-check",
+            "recurring-expense-check",
             ExistingPeriodicWorkPolicy.KEEP,
-            PeriodicWorkRequestBuilder<BillReminderWorker>(1, TimeUnit.DAYS).build()
+            PeriodicWorkRequestBuilder<RecurringExpenseWorker>(1, TimeUnit.DAYS).build()
         )
-        // Runs once immediately so a bill due soon is surfaced on this very launch,
-        // rather than waiting for the first periodic tick (which can be delayed by hours).
-        workManager.enqueue(OneTimeWorkRequestBuilder<BillReminderWorker>().build())
+        // Runs once immediately so a due recurring expense is logged on this very
+        // launch, rather than waiting for the first periodic tick (which can be
+        // delayed by hours).
+        workManager.enqueue(OneTimeWorkRequestBuilder<RecurringExpenseWorker>().build())
     }
 }

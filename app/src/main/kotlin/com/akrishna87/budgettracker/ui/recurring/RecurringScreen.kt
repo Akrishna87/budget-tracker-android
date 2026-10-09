@@ -1,4 +1,4 @@
-package com.akrishna87.budgettracker.ui.bills
+package com.akrishna87.budgettracker.ui.recurring
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -16,7 +16,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.outlined.ReceiptLong
+import androidx.compose.material.icons.outlined.Repeat
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
@@ -42,7 +42,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.akrishna87.budgettracker.data.db.CategoryEntity
-import com.akrishna87.budgettracker.data.db.RecurringBillEntity
+import com.akrishna87.budgettracker.data.db.RecurringExpenseEntity
 import com.akrishna87.budgettracker.ui.components.ElevatedPanel
 import com.akrishna87.budgettracker.ui.components.EmptyState
 import com.akrishna87.budgettracker.ui.components.IconBadge
@@ -50,13 +50,15 @@ import com.akrishna87.budgettracker.ui.components.LocalSnackbarHostState
 import com.akrishna87.budgettracker.ui.components.categoryIcon
 import com.akrishna87.budgettracker.ui.theme.BudgetTheme
 import com.akrishna87.budgettracker.util.formatMoney
+import com.akrishna87.budgettracker.util.currentMonthKey
+import com.akrishna87.budgettracker.util.monthLabel
 import kotlinx.coroutines.launch
 
 @Composable
-fun BillsScreen(viewModel: BillsViewModel) {
+fun RecurringScreen(viewModel: RecurringViewModel) {
     val state by viewModel.uiState.collectAsState()
-    var editingBill by remember { mutableStateOf<RecurringBillEntity?>(null) }
-    var pendingDelete by remember { mutableStateOf<RecurringBillEntity?>(null) }
+    var editingExpense by remember { mutableStateOf<RecurringExpenseEntity?>(null) }
+    var pendingDelete by remember { mutableStateOf<RecurringExpenseEntity?>(null) }
     var showAdd by remember { mutableStateOf(false) }
     val snackbarHostState = LocalSnackbarHostState.current
     val scope = rememberCoroutineScope()
@@ -71,35 +73,34 @@ fun BillsScreen(viewModel: BillsViewModel) {
     ) {
         item {
             Text(
-                "Recurring bills and subscriptions. You'll get a reminder a few days before each is due.",
+                "Fixed monthly costs, configured once. Each is logged as an expense automatically on its due day every month.",
                 color = colors.muted,
                 style = MaterialTheme.typography.bodyMedium
             )
         }
 
-        if (state.bills.isEmpty()) {
+        if (state.items.isEmpty()) {
             item {
-                EmptyState(icon = Icons.Outlined.ReceiptLong, text = "No recurring bills yet.")
+                EmptyState(icon = Icons.Outlined.Repeat, text = "No recurring expenses yet.")
             }
         } else {
-            items(state.bills, key = { it.bill.id }) { item ->
-                if (editingBill?.id == item.bill.id) {
-                    BillFormPanel(
-                        title = "Edit bill",
-                        initial = item.bill,
+            items(state.items, key = { it.expense.id }) { item ->
+                if (editingExpense?.id == item.expense.id) {
+                    RecurringFormPanel(
+                        title = "Edit recurring expense",
+                        initial = item.expense,
                         categories = state.categories,
-                        onSubmit = { name, amount, categoryId, dueDay, reminderDays ->
-                            viewModel.updateBill(item.bill, name, amount, categoryId, dueDay, reminderDays)
-                            editingBill = null
+                        onSubmit = { name, amount, categoryId, dueDay ->
+                            viewModel.update(item.expense, name, amount, categoryId, dueDay)
+                            editingExpense = null
                         },
-                        onCancel = { editingBill = null }
+                        onCancel = { editingExpense = null }
                     )
                 } else {
-                    BillRow(
+                    RecurringRow(
                         item = item,
-                        onMarkPaid = { viewModel.markPaid(item.bill) },
-                        onEdit = { editingBill = item.bill },
-                        onDelete = { pendingDelete = item.bill }
+                        onEdit = { editingExpense = item.expense },
+                        onDelete = { pendingDelete = item.expense }
                     )
                 }
             }
@@ -107,40 +108,40 @@ fun BillsScreen(viewModel: BillsViewModel) {
 
         item {
             if (showAdd) {
-                BillFormPanel(
-                    title = "Add recurring bill",
+                RecurringFormPanel(
+                    title = "Add recurring expense",
                     initial = null,
                     categories = state.categories,
-                    onSubmit = { name, amount, categoryId, dueDay, reminderDays ->
-                        viewModel.addBill(name, amount, categoryId, dueDay, reminderDays)
+                    onSubmit = { name, amount, categoryId, dueDay ->
+                        viewModel.add(name, amount, categoryId, dueDay)
                         showAdd = false
                     },
                     onCancel = { showAdd = false }
                 )
             } else {
                 OutlinedButton(onClick = { showAdd = true }, modifier = Modifier.fillMaxWidth()) {
-                    Text("+ Add recurring bill")
+                    Text("+ Add recurring expense")
                 }
             }
         }
     }
 
-    pendingDelete?.let { bill ->
+    pendingDelete?.let { expense ->
         AlertDialog(
             onDismissRequest = { pendingDelete = null },
-            title = { Text("Delete \"${bill.name}\"?") },
-            text = { Text("This stops future reminders. Past payments already logged stay in History.") },
+            title = { Text("Delete \"${expense.name}\"?") },
+            text = { Text("This stops future auto-logging. Entries already logged stay in History.") },
             confirmButton = {
                 TextButton(onClick = {
-                    viewModel.deleteBill(bill)
+                    viewModel.delete(expense)
                     pendingDelete = null
                     scope.launch {
                         val result = snackbarHostState.showSnackbar(
-                            message = "\"${bill.name}\" deleted",
+                            message = "\"${expense.name}\" deleted",
                             actionLabel = "Undo"
                         )
                         if (result == androidx.compose.material3.SnackbarResult.ActionPerformed) {
-                            viewModel.restoreBill(bill)
+                            viewModel.restore(expense)
                         }
                     }
                 }) { Text("Delete") }
@@ -153,26 +154,17 @@ fun BillsScreen(viewModel: BillsViewModel) {
 }
 
 @Composable
-private fun BillRow(
-    item: BillWithStatus,
-    onMarkPaid: () -> Unit,
+private fun RecurringRow(
+    item: RecurringItem,
     onEdit: () -> Unit,
     onDelete: () -> Unit
 ) {
     val colors = BudgetTheme.colors
-    val bill = item.bill
-    val statusText = when {
-        item.paidThisCycle -> "Paid for this cycle"
-        item.daysUntilDue < 0 -> "Overdue by ${-item.daysUntilDue} day${if (item.daysUntilDue == -1L) "" else "s"}"
-        item.daysUntilDue == 0L -> "Due today"
-        item.daysUntilDue == 1L -> "Due tomorrow"
-        else -> "Due in ${item.daysUntilDue} days"
-    }
-    val statusColor = when {
-        item.paidThisCycle -> colors.income
-        item.daysUntilDue < 0 -> colors.danger
-        item.daysUntilDue <= bill.reminderDaysBefore -> colors.warn
-        else -> colors.muted
+    val expense = item.expense
+    val statusText = if (expense.lastGeneratedMonth == currentMonthKey()) {
+        "Logged for " + monthLabel(currentMonthKey())
+    } else {
+        "Repeats monthly on day ${expense.dueDayOfMonth}"
     }
 
     ElevatedPanel(contentPadding = 14) {
@@ -181,41 +173,31 @@ private fun BillRow(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            IconBadge(icon = item.category?.let { categoryIcon(it) } ?: Icons.Outlined.ReceiptLong, tint = statusColor)
+            IconBadge(icon = item.category?.let { categoryIcon(it) } ?: Icons.Outlined.Repeat, tint = colors.expense)
             Column(Modifier.weight(1f)) {
-                Text(bill.name, fontWeight = FontWeight.SemiBold)
-                Text(formatMoney(bill.amount), color = colors.muted, style = MaterialTheme.typography.bodyMedium)
+                Text(expense.name, fontWeight = FontWeight.SemiBold)
+                Text(formatMoney(expense.amount), color = colors.muted, style = MaterialTheme.typography.bodyMedium)
             }
             IconButton(onClick = onEdit) { Icon(Icons.Filled.Edit, contentDescription = "Edit") }
             IconButton(onClick = onDelete) { Icon(Icons.Filled.Delete, contentDescription = "Delete", tint = colors.danger) }
         }
         Spacer(Modifier.height(10.dp))
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(statusText, color = statusColor, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodyMedium)
-            if (!item.paidThisCycle) {
-                Button(onClick = onMarkPaid) { Text("Mark paid") }
-            }
-        }
+        Text(statusText, color = colors.muted, style = MaterialTheme.typography.bodyMedium)
     }
 }
 
 @Composable
-private fun BillFormPanel(
+private fun RecurringFormPanel(
     title: String,
-    initial: RecurringBillEntity?,
+    initial: RecurringExpenseEntity?,
     categories: List<CategoryEntity>,
-    onSubmit: (String, Double, String?, Int, Int) -> Unit,
+    onSubmit: (String, Double, String?, Int) -> Unit,
     onCancel: () -> Unit
 ) {
     var name by remember { mutableStateOf(initial?.name ?: "") }
     var amount by remember { mutableStateOf(initial?.amount?.let { if (it == it.toLong().toDouble()) it.toLong().toString() else it.toString() } ?: "") }
     var categoryId by remember { mutableStateOf(initial?.categoryId) }
     var dueDay by remember { mutableStateOf((initial?.dueDayOfMonth ?: 1).toString()) }
-    var reminderDays by remember { mutableStateOf((initial?.reminderDaysBefore ?: 2).toString()) }
 
     ElevatedPanel(contentPadding = 14) {
         Text(title, style = MaterialTheme.typography.titleMedium)
@@ -225,7 +207,7 @@ private fun BillFormPanel(
             onValueChange = { name = it },
             modifier = Modifier.fillMaxWidth(),
             label = { Text("Name") },
-            placeholder = { Text("e.g. Netflix") }
+            placeholder = { Text("e.g. Rent") }
         )
         Spacer(Modifier.height(8.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -246,14 +228,6 @@ private fun BillFormPanel(
         }
         Spacer(Modifier.height(8.dp))
         CategoryPicker(selectedId = categoryId, categories = categories, onSelect = { categoryId = it })
-        Spacer(Modifier.height(8.dp))
-        OutlinedTextField(
-            value = reminderDays,
-            onValueChange = { reminderDays = it },
-            modifier = Modifier.fillMaxWidth(),
-            label = { Text("Remind me this many days before") },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
-        )
         Spacer(Modifier.height(10.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Button(
@@ -263,11 +237,10 @@ private fun BillFormPanel(
                         name,
                         amount.toDoubleOrNull() ?: 0.0,
                         categoryId,
-                        dueDay.toIntOrNull() ?: 1,
-                        reminderDays.toIntOrNull() ?: 2
+                        dueDay.toIntOrNull() ?: 1
                     )
                 }
-            ) { Text(if (initial == null) "Add bill" else "Save changes") }
+            ) { Text(if (initial == null) "Add" else "Save changes") }
             TextButton(onClick = onCancel) { Text("Cancel") }
         }
     }

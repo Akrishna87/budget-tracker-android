@@ -16,11 +16,8 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import com.akrishna87.budgettracker.ui.components.ElevatedPanel
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.TrendingUp
 import androidx.compose.material.icons.outlined.CheckCircle
-import androidx.compose.material.icons.outlined.CreditCard
 import androidx.compose.material.icons.outlined.Repeat
-import androidx.compose.material.icons.outlined.Savings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -33,7 +30,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.akrishna87.budgettracker.ui.components.IconBadge
@@ -46,9 +42,7 @@ import com.akrishna87.budgettracker.util.shiftMonthKey
 @Composable
 fun DashboardScreen(
     viewModel: DashboardViewModel,
-    onOpenDebts: () -> Unit,
-    onOpenGoals: () -> Unit,
-    onOpenTrends: () -> Unit
+    onOpenCategory: (String) -> Unit
 ) {
     val state by viewModel.uiState.collectAsState()
     val colors = BudgetTheme.colors
@@ -83,38 +77,6 @@ fun DashboardScreen(
         }
 
         item {
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                ShortcutCard(
-                    icon = Icons.Outlined.CreditCard,
-                    title = "Debts",
-                    subtitle = if (state.totalOutstandingDebt > 0) formatMoney(state.totalOutstandingDebt) + " owed" else "None tracked",
-                    tint = colors.danger,
-                    onClick = onOpenDebts,
-                    modifier = Modifier.weight(1f)
-                )
-                ShortcutCard(
-                    icon = Icons.Outlined.Savings,
-                    title = "Goals",
-                    subtitle = if (state.savingsGoalsCount > 0) formatMoney(state.totalSaved) + " saved" else "None yet",
-                    tint = colors.income,
-                    onClick = onOpenGoals,
-                    modifier = Modifier.weight(1f)
-                )
-            }
-        }
-
-        item {
-            ShortcutCard(
-                icon = Icons.AutoMirrored.Outlined.TrendingUp,
-                title = "Trends",
-                subtitle = "Month-over-month, net trend, year view",
-                tint = MaterialTheme.colorScheme.primary,
-                onClick = onOpenTrends,
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
-
-        item {
             ElevatedPanel {
                 Text(
                     "Category breakdown",
@@ -129,7 +91,7 @@ fun DashboardScreen(
                     )
                 } else {
                     state.categorySpend.forEach { entry ->
-                        CategoryBudgetRow(entry)
+                        CategoryBudgetRow(entry, onClick = { onOpenCategory(entry.category.id) })
                         Spacer(Modifier.height(12.dp))
                     }
                 }
@@ -240,7 +202,7 @@ private fun SummaryStat(label: String, value: Double, color: androidx.compose.ui
 }
 
 @Composable
-private fun CategoryBudgetRow(entry: CategorySpend) {
+private fun CategoryBudgetRow(entry: CategorySpend, onClick: () -> Unit) {
     val colors = BudgetTheme.colors
     val category = entry.category
     val budget = category.budget
@@ -253,7 +215,7 @@ private fun CategoryBudgetRow(entry: CategorySpend) {
         else -> MaterialTheme.colorScheme.primary
     }
 
-    Column {
+    Column(Modifier.clickable(onClick = onClick)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -263,10 +225,13 @@ private fun CategoryBudgetRow(entry: CategorySpend) {
                 IconBadge(icon = categoryIcon(category), small = true)
                 Text(category.name, fontWeight = FontWeight.SemiBold)
             }
-            Text(
-                if (budget > 0) "${formatMoney(spent)} / ${formatMoney(budget)}" else formatMoney(spent),
-                style = MaterialTheme.typography.bodyMedium
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    if (budget > 0) "${formatMoney(spent)} / ${formatMoney(budget)}" else formatMoney(spent),
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                Icon(Icons.Filled.ChevronRight, contentDescription = null, tint = colors.muted)
+            }
         }
         Spacer(Modifier.height(6.dp))
         androidx.compose.material3.LinearProgressIndicator(
@@ -277,30 +242,5 @@ private fun CategoryBudgetRow(entry: CategorySpend) {
             color = barColor,
             trackColor = colors.surfaceWell
         )
-    }
-}
-
-@Composable
-private fun ShortcutCard(
-    icon: ImageVector,
-    title: String,
-    subtitle: String,
-    tint: androidx.compose.ui.graphics.Color,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val colors = BudgetTheme.colors
-    ElevatedPanel(modifier = modifier.clickable(onClick = onClick), contentPadding = 14) {
-        IconBadge(icon = icon, tint = tint, small = true)
-        Spacer(Modifier.height(8.dp))
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(title, fontWeight = FontWeight.SemiBold)
-            Icon(Icons.Filled.ChevronRight, contentDescription = null, tint = colors.muted)
-        }
-        Text(subtitle, color = colors.muted, style = MaterialTheme.typography.bodyMedium)
     }
 }
