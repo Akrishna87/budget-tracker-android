@@ -13,11 +13,14 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -91,28 +94,67 @@ private fun MonthlyTaskCard(row: MonthlyTaskRow, onToggle: (Boolean) -> Unit) {
     val tint = if (category.isInvestment) colors.accentSecondary else MaterialTheme.colorScheme.primary
 
     ElevatedPanel(contentPadding = 12) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable(onClick = { onToggle(!row.checked) }),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            IconBadge(icon = categoryIcon(category), tint = tint, small = true)
-            Column(Modifier.weight(1f)) {
-                Text(
-                    category.name,
-                    fontWeight = FontWeight.SemiBold,
-                    textDecoration = if (row.checked) TextDecoration.LineThrough else TextDecoration.None,
-                    color = if (row.checked) colors.muted else MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    formatMoney(row.amount) + " this month",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = colors.muted
-                )
+        Column {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(onClick = { onToggle(!row.checked) }),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                IconBadge(icon = categoryIcon(category), tint = tint, small = true)
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        category.name,
+                        fontWeight = FontWeight.SemiBold,
+                        textDecoration = if (row.checked) TextDecoration.LineThrough else TextDecoration.None,
+                        color = if (row.checked) colors.muted else MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        formatMoney(row.amount) + " this month",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = colors.muted
+                    )
+                }
+                Checkbox(checked = row.checked, onCheckedChange = onToggle)
             }
-            Checkbox(checked = row.checked, onCheckedChange = onToggle)
+            if (row.breakdown.isNotEmpty()) {
+                HorizontalDivider(modifier = Modifier.padding(start = 40.dp, top = 10.dp, bottom = 10.dp), color = colors.surfaceWell)
+                Column(
+                    modifier = Modifier.padding(start = 40.dp),
+                    verticalArrangement = Arrangement.spacedBy(7.dp)
+                ) {
+                    row.breakdown.forEach { item -> BreakdownRow(item) }
+                }
+            }
         }
+    }
+}
+
+@Composable
+private fun BreakdownRow(item: MonthlyBreakdownItem) {
+    val colors = BudgetTheme.colors
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text(item.label, style = MaterialTheme.typography.bodySmall, color = colors.muted)
+            if (item.isRecurringPreview) {
+                Surface(
+                    shape = RoundedCornerShape(20.dp),
+                    color = colors.accentSecondary.copy(alpha = 0.16f)
+                ) {
+                    Text(
+                        "RECURRING · DUE ${item.recurringDueDay}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = colors.accentSecondary,
+                        modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp)
+                    )
+                }
+            }
+        }
+        Text(formatMoney(item.amount), style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
     }
 }

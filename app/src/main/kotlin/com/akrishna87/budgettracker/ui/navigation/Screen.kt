@@ -12,7 +12,7 @@ sealed class Screen(val route: String, val label: String, val icon: ImageVector)
     data object Dashboard : Screen("dashboard", "Dashboard", Icons.Filled.Home)
     data object Add : Screen("add", "Add", Icons.Filled.Add)
     data object History : Screen("history", "History", Icons.Filled.History)
-    data object Monthly : Screen("monthly", "Monthly", Icons.Filled.Checklist)
+    data object Monthly : Screen("monthly", "Checklist", Icons.Filled.Checklist)
     data object Settings : Screen("settings", "Settings", Icons.Filled.Settings)
 
     companion object {

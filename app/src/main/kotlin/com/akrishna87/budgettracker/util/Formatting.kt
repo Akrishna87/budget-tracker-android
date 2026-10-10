@@ -1,7 +1,9 @@
 package com.akrishna87.budgettracker.util
 
 import java.text.NumberFormat
+import java.time.Instant
 import java.time.LocalDate
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.Locale
@@ -20,6 +22,9 @@ fun todayKey(): String = LocalDate.now().toString() // yyyy-MM-dd
 fun currentMonthKey(): String = LocalDate.now().toString().substring(0, 7) // yyyy-MM
 
 fun monthKeyOfDate(date: String): String = date.substring(0, 7)
+
+fun monthKeyOfEpochMillis(epochMillis: Long): String =
+    Instant.ofEpochMilli(epochMillis).atZone(ZoneId.systemDefault()).toLocalDate().toString().substring(0, 7)
 
 private val longDateFormatter = DateTimeFormatter.ofPattern("d MMM yyyy", Locale.ENGLISH)
 
