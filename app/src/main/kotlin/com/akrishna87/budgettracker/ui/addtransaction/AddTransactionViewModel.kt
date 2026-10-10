@@ -19,10 +19,11 @@ import java.util.UUID
 val DEFAULT_PAYMENT_METHODS = listOf("Cash", "Card", "UPI", "Bank Transfer", "Other")
 
 /**
- * What the user picked on the add-entry toggle. INVESTMENT is still stored
- * as an EXPENSE transaction (see [TransactionDraft.type]) - it only narrows
- * which categories are offered, to the ones marked "is this an investment
- * category?" in Settings.
+ * What the user picked on the add-entry toggle. Only decides the stored
+ * transaction type (INVESTMENT is still saved as an EXPENSE - see
+ * [TransactionDraft.type]) and which accent color to show; it no longer
+ * restricts which categories are selectable, since every category you add
+ * in Settings should always be pickable here.
  */
 enum class EntryKind {
     INCOME,
@@ -68,9 +69,7 @@ class AddTransactionViewModel(private val repository: BudgetRepository) : ViewMo
             repository.observeCategories().collect { cats ->
                 categories.value = cats
                 if (draft.value.categoryId == null && cats.isNotEmpty()) {
-                    draft.update {
-                        it.copy(categoryId = categoriesForKind(it.kind, cats).firstOrNull()?.id ?: cats.first().id)
-                    }
+                    draft.update { it.copy(categoryId = cats.first().id) }
                 }
                 pushState()
             }
@@ -107,17 +106,6 @@ class AddTransactionViewModel(private val repository: BudgetRepository) : ViewMo
                 }
             }
             pushState()
-        }
-    }
-
-    private fun categoriesForKind(kind: EntryKind, cats: List<CategoryEntity> = categories.value): List<CategoryEntity> {
-        // Investment categories are only ever relevant under the Investment
-        // kind - showing them (and by extension their subcategories) under
-        // Income too would let an investment category get selected there.
-        return when (kind) {
-            EntryKind.INCOME -> cats.filter { !it.isInvestment }
-            EntryKind.EXPENSE -> cats.filter { !it.isInvestment }
-            EntryKind.INVESTMENT -> cats.filter { it.isInvestment }
         }
     }
 
@@ -167,16 +155,9 @@ class AddTransactionViewModel(private val repository: BudgetRepository) : ViewMo
     }
 
     fun setKind(kind: EntryKind) {
-        draft.update { current ->
-            // Don't silently fall back to some other category of the new kind
-            // (e.g. the default "Mutual Fund" on every switch to Investment) -
-            // that leaves whatever category you actually meant to pick (and its
-            // subcategories) un-selected with no visible sign why. Clear to
-            // nothing instead so picking a category is always an explicit tap.
-            val matching = categoriesForKind(kind)
-            val categoryId = current.categoryId?.takeIf { id -> matching.any { it.id == id } }
-            current.copy(kind = kind, categoryId = categoryId, subcategoryId = null)
-        }
+        // The category list is the same regardless of kind now, so switching
+        // kind leaves whatever category/subcategory was already picked alone.
+        draft.update { it.copy(kind = kind) }
         pushState()
     }
 
@@ -192,8 +173,9 @@ class AddTransactionViewModel(private val repository: BudgetRepository) : ViewMo
         pushState()
     }
 
-    fun setSubcategory(subcategoryId: String?) {
-        draft.update { it.copy(subcategoryId = subcategoryId) }
+    /** Tapping a subcategory chip (shown nested under its own category) picks both at once. */
+    fun setCategoryAndSubcategory(categoryId: String, subcategoryId: String?) {
+        draft.update { it.copy(categoryId = categoryId, subcategoryId = subcategoryId) }
         pushState()
     }
 

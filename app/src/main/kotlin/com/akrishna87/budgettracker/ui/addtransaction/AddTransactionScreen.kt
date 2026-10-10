@@ -46,6 +46,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.akrishna87.budgettracker.data.db.CategoryEntity
+import com.akrishna87.budgettracker.data.db.SubcategoryEntity
 import com.akrishna87.budgettracker.ui.components.categoryIcon
 import com.akrishna87.budgettracker.ui.theme.BudgetTheme
 
@@ -118,50 +119,34 @@ fun AddTransactionScreen(
             EntryKind.EXPENSE -> Color(0xFF3A1400)
             EntryKind.INVESTMENT -> colors.accentOnColor
         }
-        val categoriesForKind = state.categories.filter {
-            when (draft.kind) {
-                EntryKind.INCOME -> !it.isInvestment
-                EntryKind.EXPENSE -> !it.isInvestment
-                EntryKind.INVESTMENT -> it.isInvestment
-            }
-        }
-
         item {
             Column {
                 Text("Category (tap one)", style = MaterialTheme.typography.labelLarge, color = colors.muted)
                 Spacer(Modifier.height(8.dp))
-                if (categoriesForKind.isEmpty()) {
-                    val hint = if (draft.kind == EntryKind.INVESTMENT) {
-                        "No investment categories yet. Mark one in Settings."
-                    } else {
-                        "No categories yet. Add one in Settings."
-                    }
-                    Text(hint, style = MaterialTheme.typography.bodyMedium, color = colors.muted)
+                if (state.categories.isEmpty()) {
+                    Text("No categories yet. Add one in Settings.", style = MaterialTheme.typography.bodyMedium, color = colors.muted)
                 } else {
-                    CategoryChipFlow(
-                        categories = categoriesForKind,
-                        selected = draft.categoryId,
-                        onSelect = viewModel::setCategory,
-                        accentColor = kindAccentColor,
-                        accentOnColor = kindAccentOnColor
-                    )
-                }
-            }
-        }
-
-        val subcategoriesForCategory = state.subcategories.filter { it.categoryId == draft.categoryId }
-        if (subcategoriesForCategory.isNotEmpty()) {
-            item {
-                Column {
-                    Text("Subcategory (optional)", style = MaterialTheme.typography.labelLarge, color = colors.muted)
-                    Spacer(Modifier.height(8.dp))
-                    ChipFlow(
-                        items = subcategoriesForCategory.map { it.id to it.name },
-                        selected = draft.subcategoryId,
-                        onSelect = { id -> viewModel.setSubcategory(if (draft.subcategoryId == id) null else id) },
-                        accentColor = kindAccentColor,
-                        accentOnColor = kindAccentOnColor
-                    )
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        state.categories.sortedBy { it.sortOrder }.forEach { category ->
+                            CategoryGroup(
+                                category = category,
+                                subcategories = state.subcategories.filter { it.categoryId == category.id },
+                                selectedCategoryId = draft.categoryId,
+                                selectedSubcategoryId = draft.subcategoryId,
+                                accentColor = kindAccentColor,
+                                accentOnColor = kindAccentOnColor,
+                                onSelectCategory = { viewModel.setCategory(category.id) },
+                                onSelectSubcategory = { subcategoryId ->
+                                    val newSubcategoryId = if (draft.categoryId == category.id && draft.subcategoryId == subcategoryId) {
+                                        null
+                                    } else {
+                                        subcategoryId
+                                    }
+                                    viewModel.setCategoryAndSubcategory(category.id, newSubcategoryId)
+                                }
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -288,31 +273,56 @@ private fun ToggleButton(
     }
 }
 
+/**
+ * One category "header" chip, with its subcategories (if any) shown as a
+ * chip row nested right underneath it - always, not gated behind first
+ * selecting the category - so every category you've added in Settings, and
+ * everything you've filed under it, is visible at a glance.
+ */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun CategoryChipFlow(
-    categories: List<CategoryEntity>,
-    selected: String?,
-    onSelect: (String) -> Unit,
+private fun CategoryGroup(
+    category: CategoryEntity,
+    subcategories: List<SubcategoryEntity>,
+    selectedCategoryId: String?,
+    selectedSubcategoryId: String?,
     accentColor: Color,
-    accentOnColor: Color
+    accentOnColor: Color,
+    onSelectCategory: () -> Unit,
+    onSelectSubcategory: (String) -> Unit
 ) {
-    FlowRow(
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        categories.forEach { category ->
-            FilterChip(
-                selected = category.id == selected,
-                onClick = { onSelect(category.id) },
-                label = { Text(category.name) },
-                leadingIcon = { Icon(categoryIcon(category), contentDescription = null, modifier = Modifier.height(16.dp)) },
-                colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = accentColor,
-                    selectedLabelColor = accentOnColor,
-                    selectedLeadingIconColor = accentOnColor
-                )
+    val isCategorySelected = category.id == selectedCategoryId
+    Column {
+        FilterChip(
+            selected = isCategorySelected,
+            onClick = onSelectCategory,
+            label = { Text(category.name, fontWeight = FontWeight.SemiBold) },
+            leadingIcon = { Icon(categoryIcon(category), contentDescription = null, modifier = Modifier.height(16.dp)) },
+            colors = FilterChipDefaults.filterChipColors(
+                selectedContainerColor = accentColor,
+                selectedLabelColor = accentOnColor,
+                selectedLeadingIconColor = accentOnColor
             )
+        )
+        if (subcategories.isNotEmpty()) {
+            Spacer(Modifier.height(6.dp))
+            FlowRow(
+                modifier = Modifier.padding(start = 18.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                subcategories.forEach { subcategory ->
+                    FilterChip(
+                        selected = isCategorySelected && subcategory.id == selectedSubcategoryId,
+                        onClick = { onSelectSubcategory(subcategory.id) },
+                        label = { Text(subcategory.name) },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = accentColor,
+                            selectedLabelColor = accentOnColor
+                        )
+                    )
+                }
+            }
         }
     }
 }
