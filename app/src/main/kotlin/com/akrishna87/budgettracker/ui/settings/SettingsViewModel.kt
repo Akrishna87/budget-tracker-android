@@ -88,7 +88,7 @@ class SettingsViewModel(private val repository: BudgetRepository) : ViewModel() 
         viewModelScope.launch { repository.deleteSubcategory(subcategory) }
     }
 
-    fun addLoan(name: String, outstandingAmount: Double, monthlyPayment: Double) {
+    fun addLoan(name: String, outstandingAmount: Double, monthlyPayment: Double, remainingMonths: Int?) {
         if (name.isBlank() || outstandingAmount <= 0.0) return
         viewModelScope.launch {
             val nextOrder = (loans.value.maxOfOrNull { it.sortOrder } ?: -1) + 1
@@ -98,16 +98,24 @@ class SettingsViewModel(private val repository: BudgetRepository) : ViewModel() 
                     name = name.trim(),
                     outstandingAmount = outstandingAmount,
                     monthlyPayment = monthlyPayment,
+                    remainingMonths = remainingMonths,
                     sortOrder = nextOrder
                 )
             )
         }
     }
 
-    fun updateLoan(loan: LoanEntity, name: String, outstandingAmount: Double, monthlyPayment: Double) {
+    fun updateLoan(loan: LoanEntity, name: String, outstandingAmount: Double, monthlyPayment: Double, remainingMonths: Int?) {
         if (name.isBlank() || outstandingAmount <= 0.0) return
         viewModelScope.launch {
-            repository.upsertLoan(loan.copy(name = name.trim(), outstandingAmount = outstandingAmount, monthlyPayment = monthlyPayment))
+            repository.upsertLoan(
+                loan.copy(
+                    name = name.trim(),
+                    outstandingAmount = outstandingAmount,
+                    monthlyPayment = monthlyPayment,
+                    remainingMonths = remainingMonths
+                )
+            )
         }
     }
 

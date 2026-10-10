@@ -9,7 +9,9 @@ data class LoanEntity(
     val id: String,
     val name: String,
     val outstandingAmount: Double,
-    /** Used with [outstandingAmount] to estimate months left; 0 means unknown. */
+    /** Reference only - no longer drives the months-left display. */
     val monthlyPayment: Double,
+    /** Typed in directly rather than calculated; null means not set yet. */
+    val remainingMonths: Int? = null,
     val sortOrder: Int = 0
 )

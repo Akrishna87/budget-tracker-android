@@ -135,8 +135,8 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
             if (editingLoan?.id == loan.id) {
                 LoanEditRow(
                     initial = loan,
-                    onSave = { name, outstanding, monthlyPayment ->
-                        viewModel.updateLoan(loan, name, outstanding, monthlyPayment)
+                    onSave = { name, outstanding, monthlyPayment, remainingMonths ->
+                        viewModel.updateLoan(loan, name, outstanding, monthlyPayment, remainingMonths)
                         editingLoan = null
                     },
                     onCancel = { editingLoan = null }
@@ -397,7 +397,7 @@ private fun LoanRow(loan: LoanEntity, onEdit: () -> Unit, onDelete: () -> Unit) 
                 Text(loan.name, fontWeight = FontWeight.SemiBold)
                 Text(
                     "${formatMoney(loan.outstandingAmount)} outstanding" +
-                        if (loan.monthlyPayment > 0) " · ${formatMoney(loan.monthlyPayment)}/mo" else "",
+                        (loan.remainingMonths?.let { " · $it mo left" } ?: ""),
                     color = colors.muted,
                     style = MaterialTheme.typography.bodyMedium
                 )
@@ -411,12 +411,13 @@ private fun LoanRow(loan: LoanEntity, onEdit: () -> Unit, onDelete: () -> Unit) 
 @Composable
 private fun LoanEditRow(
     initial: LoanEntity,
-    onSave: (String, Double, Double) -> Unit,
+    onSave: (String, Double, Double, Int?) -> Unit,
     onCancel: () -> Unit
 ) {
     var name by remember { mutableStateOf(initial.name) }
     var outstanding by remember { mutableStateOf(initial.outstandingAmount.toString()) }
     var monthlyPayment by remember { mutableStateOf(if (initial.monthlyPayment > 0) initial.monthlyPayment.toString() else "") }
+    var remainingMonths by remember { mutableStateOf(initial.remainingMonths?.toString() ?: "") }
 
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -436,12 +437,19 @@ private fun LoanEditRow(
                 value = monthlyPayment,
                 onValueChange = { monthlyPayment = it },
                 modifier = Modifier.fillMaxWidth(),
-                label = { Text("Monthly payment (optional, for months-left)") },
+                label = { Text("Monthly payment (optional)") },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
+            )
+            OutlinedTextField(
+                value = remainingMonths,
+                onValueChange = { remainingMonths = it },
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("Months remaining (optional)") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
             )
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Button(onClick = {
-                    onSave(name, outstanding.toDoubleOrNull() ?: 0.0, monthlyPayment.toDoubleOrNull() ?: 0.0)
+                    onSave(name, outstanding.toDoubleOrNull() ?: 0.0, monthlyPayment.toDoubleOrNull() ?: 0.0, remainingMonths.toIntOrNull())
                 }) { Text("Save") }
                 TextButton(onClick = onCancel) { Text("Cancel") }
             }
@@ -450,10 +458,11 @@ private fun LoanEditRow(
 }
 
 @Composable
-private fun AddLoanRow(onAdd: (String, Double, Double) -> Unit) {
+private fun AddLoanRow(onAdd: (String, Double, Double, Int?) -> Unit) {
     var name by remember { mutableStateOf("") }
     var outstanding by remember { mutableStateOf("") }
     var monthlyPayment by remember { mutableStateOf("") }
+    var remainingMonths by remember { mutableStateOf("") }
 
     ElevatedPanel(contentPadding = 14) {
         Text("Add loan", style = MaterialTheme.typography.titleMedium)
@@ -478,17 +487,26 @@ private fun AddLoanRow(onAdd: (String, Double, Double) -> Unit) {
             value = monthlyPayment,
             onValueChange = { monthlyPayment = it },
             modifier = Modifier.fillMaxWidth(),
-            label = { Text("Monthly payment (optional, for months-left)") },
+            label = { Text("Monthly payment (optional)") },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
+        )
+        Spacer(Modifier.height(8.dp))
+        OutlinedTextField(
+            value = remainingMonths,
+            onValueChange = { remainingMonths = it },
+            modifier = Modifier.fillMaxWidth(),
+            label = { Text("Months remaining (optional)") },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
         )
         Spacer(Modifier.height(10.dp))
         Button(
             modifier = Modifier.fillMaxWidth(),
             onClick = {
-                onAdd(name, outstanding.toDoubleOrNull() ?: 0.0, monthlyPayment.toDoubleOrNull() ?: 0.0)
+                onAdd(name, outstanding.toDoubleOrNull() ?: 0.0, monthlyPayment.toDoubleOrNull() ?: 0.0, remainingMonths.toIntOrNull())
                 name = ""
                 outstanding = ""
                 monthlyPayment = ""
+                remainingMonths = ""
             }
         ) { Text("Add loan") }
     }

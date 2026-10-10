@@ -38,7 +38,6 @@ import com.akrishna87.budgettracker.ui.theme.BudgetTheme
 import com.akrishna87.budgettracker.util.formatMoney
 import com.akrishna87.budgettracker.util.monthLabel
 import com.akrishna87.budgettracker.util.shiftMonthKey
-import kotlin.math.ceil
 
 @Composable
 fun DashboardScreen(
@@ -193,10 +192,10 @@ private fun LoanDetailsPanel(loans: List<LoanEntity>, totalOutstanding: Double) 
 @Composable
 private fun LoanRow(loan: LoanEntity) {
     val colors = BudgetTheme.colors
-    val monthsLeft = if (loan.monthlyPayment > 0) ceil(loan.outstandingAmount / loan.monthlyPayment).toInt() else null
+    val monthsLeft = loan.remainingMonths
     val statusText = when {
         loan.outstandingAmount <= 0 -> "Paid off"
-        monthsLeft == null -> "Set a monthly payment"
+        monthsLeft == null -> "Set months remaining"
         else -> "$monthsLeft month${if (monthsLeft == 1) "" else "s"} left"
     }
 
