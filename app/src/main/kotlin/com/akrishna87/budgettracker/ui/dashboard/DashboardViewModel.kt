@@ -29,6 +29,7 @@ data class DashboardUiState(
     val totalInvestment: Double = 0.0,
     val totalPlainExpense: Double = 0.0,
     val incomeByCategory: List<CategoryTotal> = emptyList(),
+    val investmentByCategory: List<CategoryTotal> = emptyList(),
     val expenseByCategory: List<CategoryTotal> = emptyList(),
     val loans: List<LoanEntity> = emptyList(),
     val totalLoanOutstanding: Double = 0.0,
@@ -77,7 +78,8 @@ class DashboardViewModel(private val repository: BudgetRepository) : ViewModel()
             totalInvestment = investmentTransactions.sumOf { it.amount },
             totalPlainExpense = plainExpenseTransactions.sumOf { it.amount },
             incomeByCategory = totalsByCategory(incomeTransactions, categories),
-            expenseByCategory = totalsByCategory(expenseTransactions, categories),
+            investmentByCategory = totalsByCategory(investmentTransactions, categories),
+            expenseByCategory = totalsByCategory(plainExpenseTransactions, categories),
             mostRecentExpense = mostRecent,
             justRepeatedId = repeatedId
         )

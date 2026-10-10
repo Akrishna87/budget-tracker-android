@@ -114,6 +114,28 @@ fun DashboardScreen(
         item {
             ElevatedPanel {
                 Text(
+                    "Investments by category",
+                    style = MaterialTheme.typography.titleMedium
+                )
+                Spacer(Modifier.height(10.dp))
+                if (state.investmentByCategory.isEmpty()) {
+                    Text(
+                        "No investments logged for this month yet.",
+                        color = colors.muted,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                } else {
+                    state.investmentByCategory.forEach { entry ->
+                        InvestmentCategoryRow(entry, onClick = { onOpenCategory(entry.category.id) })
+                        Spacer(Modifier.height(12.dp))
+                    }
+                }
+            }
+        }
+
+        item {
+            ElevatedPanel {
+                Text(
                     "Expense by category",
                     style = MaterialTheme.typography.titleMedium
                 )
@@ -357,6 +379,27 @@ private fun IncomeCategoryRow(entry: CategoryTotal, onClick: () -> Unit) {
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(formatMoney(entry.amount), color = colors.income, style = MaterialTheme.typography.bodyMedium)
+            Icon(Icons.Filled.ChevronRight, contentDescription = null, tint = colors.muted)
+        }
+    }
+}
+
+@Composable
+private fun InvestmentCategoryRow(entry: CategoryTotal, onClick: () -> Unit) {
+    val colors = BudgetTheme.colors
+    val category = entry.category
+
+    Row(
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            IconBadge(icon = categoryIcon(category), tint = colors.accentSecondary, small = true)
+            Text(category.name, fontWeight = FontWeight.SemiBold)
+        }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(formatMoney(entry.amount), color = colors.accentSecondary, style = MaterialTheme.typography.bodyMedium)
             Icon(Icons.Filled.ChevronRight, contentDescription = null, tint = colors.muted)
         }
     }
