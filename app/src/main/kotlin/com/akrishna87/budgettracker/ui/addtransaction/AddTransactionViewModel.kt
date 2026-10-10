@@ -165,8 +165,13 @@ class AddTransactionViewModel(private val repository: BudgetRepository) : ViewMo
 
     fun setKind(kind: EntryKind) {
         draft.update { current ->
+            // Don't silently fall back to some other category of the new kind
+            // (e.g. the default "Mutual Fund" on every switch to Investment) -
+            // that leaves whatever category you actually meant to pick (and its
+            // subcategories) un-selected with no visible sign why. Clear to
+            // nothing instead so picking a category is always an explicit tap.
             val matching = categoriesForKind(kind)
-            val categoryId = if (matching.any { it.id == current.categoryId }) current.categoryId else matching.firstOrNull()?.id
+            val categoryId = current.categoryId?.takeIf { id -> matching.any { it.id == id } }
             current.copy(kind = kind, categoryId = categoryId, subcategoryId = null)
         }
         pushState()
