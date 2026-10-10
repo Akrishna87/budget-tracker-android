@@ -4,6 +4,8 @@ import com.akrishna87.budgettracker.data.db.CategoryDao
 import com.akrishna87.budgettracker.data.db.CategoryEntity
 import com.akrishna87.budgettracker.data.db.LoanDao
 import com.akrishna87.budgettracker.data.db.LoanEntity
+import com.akrishna87.budgettracker.data.db.MonthlyCheckDao
+import com.akrishna87.budgettracker.data.db.MonthlyCheckEntity
 import com.akrishna87.budgettracker.data.db.RecurringExpenseDao
 import com.akrishna87.budgettracker.data.db.RecurringExpenseEntity
 import com.akrishna87.budgettracker.data.db.SubcategoryDao
@@ -17,7 +19,8 @@ class BudgetRepository(
     private val subcategoryDao: SubcategoryDao,
     private val transactionDao: TransactionDao,
     private val recurringExpenseDao: RecurringExpenseDao,
-    private val loanDao: LoanDao
+    private val loanDao: LoanDao,
+    private val monthlyCheckDao: MonthlyCheckDao
 ) {
     fun observeCategories(): Flow<List<CategoryEntity>> = categoryDao.observeAll()
 
@@ -26,6 +29,7 @@ class BudgetRepository(
     suspend fun deleteCategory(category: CategoryEntity) {
         categoryDao.delete(category)
         subcategoryDao.deleteByCategory(category.id)
+        monthlyCheckDao.deleteByCategory(category.id)
     }
 
     fun observeSubcategories(): Flow<List<SubcategoryEntity>> = subcategoryDao.observeAll()
@@ -55,4 +59,14 @@ class BudgetRepository(
     suspend fun upsertLoan(loan: LoanEntity) = loanDao.upsert(loan)
 
     suspend fun deleteLoan(loan: LoanEntity) = loanDao.delete(loan)
+
+    fun observeMonthlyChecks(monthKey: String): Flow<List<MonthlyCheckEntity>> = monthlyCheckDao.observeForMonth(monthKey)
+
+    suspend fun setMonthlyChecked(categoryId: String, monthKey: String, checked: Boolean) {
+        if (checked) {
+            monthlyCheckDao.upsert(MonthlyCheckEntity(categoryId = categoryId, monthKey = monthKey))
+        } else {
+            monthlyCheckDao.delete(categoryId, monthKey)
+        }
+    }
 }

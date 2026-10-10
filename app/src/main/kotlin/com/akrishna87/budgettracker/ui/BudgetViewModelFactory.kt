@@ -6,6 +6,7 @@ import com.akrishna87.budgettracker.data.repository.BudgetRepository
 import com.akrishna87.budgettracker.ui.addtransaction.AddTransactionViewModel
 import com.akrishna87.budgettracker.ui.dashboard.DashboardViewModel
 import com.akrishna87.budgettracker.ui.history.HistoryViewModel
+import com.akrishna87.budgettracker.ui.monthly.MonthlyViewModel
 import com.akrishna87.budgettracker.ui.recurring.RecurringViewModel
 import com.akrishna87.budgettracker.ui.settings.SettingsViewModel
 
@@ -25,6 +26,8 @@ class BudgetViewModelFactory(
                 SettingsViewModel(repository) as T
             modelClass.isAssignableFrom(RecurringViewModel::class.java) ->
                 RecurringViewModel(repository) as T
+            modelClass.isAssignableFrom(MonthlyViewModel::class.java) ->
+                MonthlyViewModel(repository) as T
             else -> throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
         }
     }

@@ -120,7 +120,7 @@ fun AddTransactionScreen(
         }
         val categoriesForKind = state.categories.filter {
             when (draft.kind) {
-                EntryKind.INCOME -> true
+                EntryKind.INCOME -> !it.isInvestment
                 EntryKind.EXPENSE -> !it.isInvestment
                 EntryKind.INVESTMENT -> it.isInvestment
             }
@@ -131,11 +131,12 @@ fun AddTransactionScreen(
                 Text("Category (tap one)", style = MaterialTheme.typography.labelLarge, color = colors.muted)
                 Spacer(Modifier.height(8.dp))
                 if (categoriesForKind.isEmpty()) {
-                    Text(
-                        "No investment categories yet. Mark one in Settings.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = colors.muted
-                    )
+                    val hint = if (draft.kind == EntryKind.INVESTMENT) {
+                        "No investment categories yet. Mark one in Settings."
+                    } else {
+                        "No categories yet. Add one in Settings."
+                    }
+                    Text(hint, style = MaterialTheme.typography.bodyMedium, color = colors.muted)
                 } else {
                     CategoryChipFlow(
                         categories = categoriesForKind,

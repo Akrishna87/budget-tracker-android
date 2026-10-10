@@ -39,14 +39,17 @@ data class DashboardUiState(
     val net: Double get() = totalIncome - totalExpense
 }
 
+/**
+ * One row per [categories] entry (not per category that happens to have a
+ * transaction this month) - so a brand-new category shows up right away at
+ * ₹0, and a deleted category disappears on its own next time this recomputes
+ * since it's simply no longer in [categories].
+ */
 private fun totalsByCategory(transactions: List<TransactionEntity>, categories: List<CategoryEntity>): List<CategoryTotal> {
-    return transactions
-        .groupBy { it.categoryId }
-        .mapNotNull { (categoryId, items) ->
-            val category = categories.find { it.id == categoryId } ?: return@mapNotNull null
-            CategoryTotal(category, items.sumOf { it.amount })
-        }
-        .sortedByDescending { it.amount }
+    val amountsByCategoryId = transactions.groupBy { it.categoryId }.mapValues { (_, items) -> items.sumOf { it.amount } }
+    return categories
+        .map { category -> CategoryTotal(category, amountsByCategoryId[category.id] ?: 0.0) }
+        .sortedWith(compareByDescending<CategoryTotal> { it.amount }.thenBy { it.category.sortOrder })
 }
 
 class DashboardViewModel(private val repository: BudgetRepository) : ViewModel() {
@@ -70,6 +73,8 @@ class DashboardViewModel(private val repository: BudgetRepository) : ViewModel()
         val plainExpenseTransactions = expenseTransactions.filter {
             categories.find { c -> c.id == it.categoryId }?.isInvestment != true
         }
+        val plainCategories = categories.filter { !it.isInvestment }
+        val investmentCategories = categories.filter { it.isInvestment }
 
         DashboardUiState(
             selectedMonth = month,
@@ -77,9 +82,9 @@ class DashboardViewModel(private val repository: BudgetRepository) : ViewModel()
             totalExpense = expenseTransactions.sumOf { it.amount },
             totalInvestment = investmentTransactions.sumOf { it.amount },
             totalPlainExpense = plainExpenseTransactions.sumOf { it.amount },
-            incomeByCategory = totalsByCategory(incomeTransactions, categories),
-            investmentByCategory = totalsByCategory(investmentTransactions, categories),
-            expenseByCategory = totalsByCategory(plainExpenseTransactions, categories),
+            incomeByCategory = totalsByCategory(incomeTransactions, plainCategories),
+            investmentByCategory = totalsByCategory(investmentTransactions, investmentCategories),
+            expenseByCategory = totalsByCategory(plainExpenseTransactions, plainCategories),
             mostRecentExpense = mostRecent,
             justRepeatedId = repeatedId
         )

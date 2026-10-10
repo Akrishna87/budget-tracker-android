@@ -1,0 +1,55 @@
+package com.akrishna87.budgettracker.ui.monthly
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.akrishna87.budgettracker.data.db.CategoryEntity
+import com.akrishna87.budgettracker.data.repository.BudgetRepository
+import com.akrishna87.budgettracker.util.currentMonthKey
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
+
+data class MonthlyTaskRow(
+    val category: CategoryEntity,
+    val checked: Boolean
+)
+
+data class MonthlyUiState(
+    val selectedMonth: String = currentMonthKey(),
+    val rows: List<MonthlyTaskRow> = emptyList()
+)
+
+class MonthlyViewModel(private val repository: BudgetRepository) : ViewModel() {
+
+    private val selectedMonth = MutableStateFlow(currentMonthKey())
+
+    val uiState: StateFlow<MonthlyUiState> = selectedMonth.flatMapLatest { month ->
+        combine(repository.observeCategories(), repository.observeMonthlyChecks(month)) { categories, checks ->
+            val checkedIds = checks.map { it.categoryId }.toSet()
+            MonthlyUiState(
+                selectedMonth = month,
+                rows = categories
+                    .sortedBy { it.sortOrder }
+                    .map { category -> MonthlyTaskRow(category, category.id in checkedIds) }
+            )
+        }
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = MonthlyUiState()
+    )
+
+    fun selectMonth(month: String) {
+        selectedMonth.value = month
+    }
+
+    fun setChecked(categoryId: String, checked: Boolean) {
+        viewModelScope.launch {
+            repository.setMonthlyChecked(categoryId, selectedMonth.value, checked)
+        }
+    }
+}

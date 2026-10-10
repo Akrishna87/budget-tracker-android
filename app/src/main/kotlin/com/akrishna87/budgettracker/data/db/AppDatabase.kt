@@ -17,9 +17,10 @@ import kotlinx.coroutines.launch
         SubcategoryEntity::class,
         TransactionEntity::class,
         RecurringExpenseEntity::class,
-        LoanEntity::class
+        LoanEntity::class,
+        MonthlyCheckEntity::class
     ],
-    version = 7,
+    version = 8,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -29,6 +30,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun transactionDao(): TransactionDao
     abstract fun recurringExpenseDao(): RecurringExpenseDao
     abstract fun loanDao(): LoanDao
+    abstract fun monthlyCheckDao(): MonthlyCheckDao
 
     companion object {
         @Volatile

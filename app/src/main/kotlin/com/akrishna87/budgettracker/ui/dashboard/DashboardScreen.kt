@@ -325,7 +325,7 @@ private fun ExpenseCategoryRow(entry: CategoryTotal, onClick: () -> Unit) {
     val category = entry.category
     val budget = category.budget
     val spent = entry.amount
-    val fraction = if (budget > 0) (spent / budget).toFloat().coerceIn(0f, 1f) else 1f
+    val fraction = if (budget > 0) (spent / budget).toFloat().coerceIn(0f, 1f) else if (spent > 0) 1f else 0f
     val barColor = when {
         budget <= 0 -> MaterialTheme.colorScheme.primary
         spent > budget -> colors.danger

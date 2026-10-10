@@ -111,8 +111,11 @@ class AddTransactionViewModel(private val repository: BudgetRepository) : ViewMo
     }
 
     private fun categoriesForKind(kind: EntryKind, cats: List<CategoryEntity> = categories.value): List<CategoryEntity> {
+        // Investment categories are only ever relevant under the Investment
+        // kind - showing them (and by extension their subcategories) under
+        // Income too would let an investment category get selected there.
         return when (kind) {
-            EntryKind.INCOME -> cats
+            EntryKind.INCOME -> cats.filter { !it.isInvestment }
             EntryKind.EXPENSE -> cats.filter { !it.isInvestment }
             EntryKind.INVESTMENT -> cats.filter { it.isInvestment }
         }
