@@ -1,12 +1,14 @@
 package com.akrishna87.budgettracker.ui.navigation
 
-import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.FloatingActionButton
@@ -24,16 +26,14 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.navigation.NavDestination.Companion.hierarchy
-import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import androidx.navigation.NavBackStackEntry
 import com.akrishna87.budgettracker.data.db.TransactionEntity
 import com.akrishna87.budgettracker.ui.BudgetViewModelFactory
 import com.akrishna87.budgettracker.ui.addtransaction.AddTransactionScreen
@@ -49,20 +49,10 @@ import com.akrishna87.budgettracker.ui.recurring.RecurringViewModel
 import com.akrishna87.budgettracker.ui.settings.SettingsScreen
 import com.akrishna87.budgettracker.ui.settings.SettingsViewModel
 import com.akrishna87.budgettracker.ui.theme.Accent
+import kotlinx.coroutines.launch
 
 private const val TRANSITION_MS = 220
-private val bottomNavRoutes = Screen.bottomNavItems.map { it.route }.toSet()
-
-// Bottom-nav tabs aren't a linear stack (Recurring -> Dashboard jumps backward
-// past History), so sliding horizontally between them looks like a glitch
-// rather than motion with a clear direction. Tab-to-tab switches crossfade
-// instead; the slide stays for genuinely hierarchical pushes (Add, editing
-// from History).
-private fun AnimatedContentTransitionScope<NavBackStackEntry>.isBottomNavSwitch(): Boolean {
-    val from = initialState.destination.route
-    val to = targetState.destination.route
-    return from in bottomNavRoutes && to in bottomNavRoutes
-}
+private const val MAIN_ROUTE = "main"
 
 @Composable
 fun BudgetNavHost(factory: BudgetViewModelFactory) {
@@ -70,6 +60,15 @@ fun BudgetNavHost(factory: BudgetViewModelFactory) {
     val addTransactionViewModel: AddTransactionViewModel = viewModel(factory = factory)
     val snackbarHostState = remember { SnackbarHostState() }
     val backStackEntry by navController.currentBackStackEntryAsState()
+    val scope = rememberCoroutineScope()
+
+    // Dashboard, History, Recurring and Settings live as pages of one pager
+    // (hoisted here, outside the "add" push/pop, so swiping between them
+    // carries no NavHost transition at all - it's just the pager's own drag,
+    // which is what makes it swipeable in the first place) rather than as
+    // separate NavHost destinations.
+    val pagerState = rememberPagerState(pageCount = { Screen.bottomNavItems.size })
+    val historyPageIndex = Screen.bottomNavItems.indexOf(Screen.History)
 
     // Set by Dashboard's "tap a category" action and consumed once History
     // opens, so tapping a category jumps straight to its individual entries
@@ -77,15 +76,9 @@ fun BudgetNavHost(factory: BudgetViewModelFactory) {
     var pendingHistoryCategoryId by remember { mutableStateOf<String?>(null) }
 
     val currentDestination = backStackEntry?.destination
-    val isOnBottomNavRoute = Screen.bottomNavItems.any { currentDestination?.hierarchy?.any { d -> d.route == it.route } == true }
-    val currentTitle = (Screen.bottomNavItems + Screen.Add)
-        .firstOrNull { screen -> currentDestination?.hierarchy?.any { it.route == screen.route } == true }
-        ?.label ?: Screen.Dashboard.label
-    val onBack: (() -> Unit)? = if (isOnBottomNavRoute) {
-        null
-    } else {
-        { navController.popBackStack() }
-    }
+    val isOnMain = currentDestination?.route == MAIN_ROUTE
+    val currentTitle = if (isOnMain) Screen.bottomNavItems[pagerState.currentPage].label else Screen.Add.label
+    val onBack: (() -> Unit)? = if (isOnMain) null else { { navController.popBackStack() } }
 
     Scaffold(
         topBar = {
@@ -95,18 +88,13 @@ fun BudgetNavHost(factory: BudgetViewModelFactory) {
             )
         },
         bottomBar = {
-            if (isOnBottomNavRoute) {
+            if (isOnMain) {
                 NavigationBar {
-                    Screen.bottomNavItems.forEach { screen ->
-                        val selected = currentDestination?.hierarchy?.any { it.route == screen.route } == true
+                    Screen.bottomNavItems.forEachIndexed { index, screen ->
                         NavigationBarItem(
-                            selected = selected,
+                            selected = pagerState.currentPage == index,
                             onClick = {
-                                navController.navigate(screen.route) {
-                                    popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                                    launchSingleTop = true
-                                    restoreState = true
-                                }
+                                scope.launch { pagerState.animateScrollToPage(index) }
                             },
                             icon = { Icon(screen.icon, contentDescription = screen.label) },
                             label = { Text(screen.label) },
@@ -121,7 +109,7 @@ fun BudgetNavHost(factory: BudgetViewModelFactory) {
             }
         },
         floatingActionButton = {
-            if (isOnBottomNavRoute) {
+            if (isOnMain) {
                 FloatingActionButton(
                     onClick = {
                         addTransactionViewModel.startNew()
@@ -137,74 +125,71 @@ fun BudgetNavHost(factory: BudgetViewModelFactory) {
         CompositionLocalProvider(LocalSnackbarHostState provides snackbarHostState) {
         NavHost(
             navController = navController,
-            startDestination = Screen.Dashboard.route,
+            startDestination = MAIN_ROUTE,
             modifier = Modifier.padding(padding),
             enterTransition = {
-                if (isBottomNavSwitch()) {
-                    fadeIn(tween(TRANSITION_MS))
-                } else {
-                    fadeIn(tween(TRANSITION_MS)) + slideInHorizontally(tween(TRANSITION_MS)) { it / 10 }
-                }
+                fadeIn(tween(TRANSITION_MS)) + slideInHorizontally(tween(TRANSITION_MS)) { it / 10 }
             },
             exitTransition = { fadeOut(tween(TRANSITION_MS)) },
             popEnterTransition = { fadeIn(tween(TRANSITION_MS)) },
             popExitTransition = {
-                if (isBottomNavSwitch()) {
-                    fadeOut(tween(TRANSITION_MS))
-                } else {
-                    fadeOut(tween(TRANSITION_MS)) + slideOutHorizontally(tween(TRANSITION_MS)) { it / 10 }
-                }
+                fadeOut(tween(TRANSITION_MS)) + slideOutHorizontally(tween(TRANSITION_MS)) { it / 10 }
             }
         ) {
-            composable(Screen.Dashboard.route) {
-                val viewModel: DashboardViewModel = viewModel(factory = factory)
-                DashboardScreen(
-                    viewModel = viewModel,
-                    onOpenCategory = { categoryId ->
-                        pendingHistoryCategoryId = categoryId
-                        navController.navigate(Screen.History.route) {
-                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                            launchSingleTop = true
+            composable(MAIN_ROUTE) {
+                HorizontalPager(
+                    state = pagerState,
+                    modifier = Modifier.fillMaxSize()
+                ) { page ->
+                    when (Screen.bottomNavItems[page]) {
+                        Screen.Dashboard -> {
+                            val viewModel: DashboardViewModel = viewModel(factory = factory)
+                            DashboardScreen(
+                                viewModel = viewModel,
+                                onOpenCategory = { categoryId ->
+                                    pendingHistoryCategoryId = categoryId
+                                    scope.launch { pagerState.animateScrollToPage(historyPageIndex) }
+                                }
+                            )
                         }
+                        Screen.History -> {
+                            val viewModel: HistoryViewModel = viewModel(factory = factory)
+                            LaunchedEffect(pendingHistoryCategoryId) {
+                                pendingHistoryCategoryId?.let {
+                                    viewModel.setCategoryFilter(it)
+                                    pendingHistoryCategoryId = null
+                                }
+                            }
+                            HistoryScreen(
+                                viewModel = viewModel,
+                                onEdit = { transaction: TransactionEntity ->
+                                    addTransactionViewModel.loadForEdit(transaction)
+                                    navController.navigate(Screen.Add.route) {
+                                        launchSingleTop = true
+                                    }
+                                }
+                            )
+                        }
+                        Screen.Recurring -> {
+                            val viewModel: RecurringViewModel = viewModel(factory = factory)
+                            RecurringScreen(viewModel)
+                        }
+                        Screen.Settings -> {
+                            val viewModel: SettingsViewModel = viewModel(factory = factory)
+                            SettingsScreen(viewModel)
+                        }
+                        else -> Unit
                     }
-                )
+                }
             }
             composable(Screen.Add.route) {
                 AddTransactionScreen(
                     viewModel = addTransactionViewModel,
                     onSaved = {
-                        navController.navigate(Screen.History.route) {
-                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                            launchSingleTop = true
-                        }
+                        navController.popBackStack()
+                        scope.launch { pagerState.scrollToPage(historyPageIndex) }
                     }
                 )
-            }
-            composable(Screen.History.route) {
-                val viewModel: HistoryViewModel = viewModel(factory = factory)
-                LaunchedEffect(pendingHistoryCategoryId) {
-                    pendingHistoryCategoryId?.let {
-                        viewModel.setCategoryFilter(it)
-                        pendingHistoryCategoryId = null
-                    }
-                }
-                HistoryScreen(
-                    viewModel = viewModel,
-                    onEdit = { transaction: TransactionEntity ->
-                        addTransactionViewModel.loadForEdit(transaction)
-                        navController.navigate(Screen.Add.route) {
-                            launchSingleTop = true
-                        }
-                    }
-                )
-            }
-            composable(Screen.Recurring.route) {
-                val viewModel: RecurringViewModel = viewModel(factory = factory)
-                RecurringScreen(viewModel)
-            }
-            composable(Screen.Settings.route) {
-                val viewModel: SettingsViewModel = viewModel(factory = factory)
-                SettingsScreen(viewModel)
             }
         }
         }

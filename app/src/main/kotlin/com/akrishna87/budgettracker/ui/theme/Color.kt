@@ -25,7 +25,7 @@ data class BudgetColors(
 
 val DarkBudgetColors = BudgetColors(
     income = Color(0xFF3DDC97),
-    expense = Color(0xFFFF8A5C),
+    expense = Color(0xFFFF5C5C),
     danger = Color(0xFFFF5C5C),
     warn = Color(0xFFF5B942),
     accentSecondary = Color(0xFF5B9DF9),
@@ -37,7 +37,7 @@ val DarkBudgetColors = BudgetColors(
 
 val LightBudgetColors = BudgetColors(
     income = Color(0xFF1C8F64),
-    expense = Color(0xFFC65A2E),
+    expense = Color(0xFFC13B33),
     danger = Color(0xFFC13B33),
     warn = Color(0xFF8A5E10),
     accentSecondary = Color(0xFF2E6FC9),
