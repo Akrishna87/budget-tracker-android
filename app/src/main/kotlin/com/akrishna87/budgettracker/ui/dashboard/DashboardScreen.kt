@@ -79,19 +79,41 @@ fun DashboardScreen(
         item {
             ElevatedPanel {
                 Text(
-                    "Category breakdown",
+                    "Income by category",
                     style = MaterialTheme.typography.titleMedium
                 )
                 Spacer(Modifier.height(10.dp))
-                if (state.categorySpend.isEmpty()) {
+                if (state.incomeByCategory.isEmpty()) {
+                    Text(
+                        "No income logged for this month yet.",
+                        color = colors.muted,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                } else {
+                    state.incomeByCategory.forEach { entry ->
+                        IncomeCategoryRow(entry, onClick = { onOpenCategory(entry.category.id) })
+                        Spacer(Modifier.height(12.dp))
+                    }
+                }
+            }
+        }
+
+        item {
+            ElevatedPanel {
+                Text(
+                    "Expense by category",
+                    style = MaterialTheme.typography.titleMedium
+                )
+                Spacer(Modifier.height(10.dp))
+                if (state.expenseByCategory.isEmpty()) {
                     Text(
                         "No expenses logged for this month yet.",
                         color = colors.muted,
                         style = MaterialTheme.typography.bodyMedium
                     )
                 } else {
-                    state.categorySpend.forEach { entry ->
-                        CategoryBudgetRow(entry, onClick = { onOpenCategory(entry.category.id) })
+                    state.expenseByCategory.forEach { entry ->
+                        ExpenseCategoryRow(entry, onClick = { onOpenCategory(entry.category.id) })
                         Spacer(Modifier.height(12.dp))
                     }
                 }
@@ -202,11 +224,11 @@ private fun SummaryStat(label: String, value: Double, color: androidx.compose.ui
 }
 
 @Composable
-private fun CategoryBudgetRow(entry: CategorySpend, onClick: () -> Unit) {
+private fun ExpenseCategoryRow(entry: CategoryTotal, onClick: () -> Unit) {
     val colors = BudgetTheme.colors
     val category = entry.category
     val budget = category.budget
-    val spent = entry.spent
+    val spent = entry.amount
     val fraction = if (budget > 0) (spent / budget).toFloat().coerceIn(0f, 1f) else 1f
     val barColor = when {
         budget <= 0 -> MaterialTheme.colorScheme.primary
@@ -242,5 +264,26 @@ private fun CategoryBudgetRow(entry: CategorySpend, onClick: () -> Unit) {
             color = barColor,
             trackColor = colors.surfaceWell
         )
+    }
+}
+
+@Composable
+private fun IncomeCategoryRow(entry: CategoryTotal, onClick: () -> Unit) {
+    val colors = BudgetTheme.colors
+    val category = entry.category
+
+    Row(
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            IconBadge(icon = categoryIcon(category), tint = colors.income, small = true)
+            Text(category.name, fontWeight = FontWeight.SemiBold)
+        }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(formatMoney(entry.amount), color = colors.income, style = MaterialTheme.typography.bodyMedium)
+            Icon(Icons.Filled.ChevronRight, contentDescription = null, tint = colors.muted)
+        }
     }
 }

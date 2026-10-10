@@ -24,7 +24,6 @@ data class TransactionDraft(
     val date: String = todayKey(),
     val categoryId: String? = null,
     val paymentMethod: String? = null,
-    val sourceName: String = "",
     val note: String = "",
     val showMore: Boolean = false
 )
@@ -107,7 +106,6 @@ class AddTransactionViewModel(private val repository: BudgetRepository) : ViewMo
             date = transaction.date,
             categoryId = transaction.categoryId,
             paymentMethod = transaction.paymentMethod,
-            sourceName = transaction.sourceName ?: "",
             note = transaction.note,
             showMore = true
         )
@@ -138,11 +136,6 @@ class AddTransactionViewModel(private val repository: BudgetRepository) : ViewMo
         pushState()
     }
 
-    fun setSourceName(name: String) {
-        draft.update { it.copy(sourceName = name) }
-        pushState()
-    }
-
     fun setDate(date: String) {
         draft.update { it.copy(date = date) }
         pushState()
@@ -162,7 +155,6 @@ class AddTransactionViewModel(private val repository: BudgetRepository) : ViewMo
         val current = draft.value
         val amountValue = current.amount.toDoubleOrNull()
         if (amountValue == null || amountValue <= 0.0) return
-        if (current.type == TransactionType.INCOME && current.sourceName.isBlank()) return
 
         viewModelScope.launch {
             val entry = TransactionEntity(
@@ -171,9 +163,8 @@ class AddTransactionViewModel(private val repository: BudgetRepository) : ViewMo
                 amount = amountValue,
                 date = current.date,
                 note = current.note,
-                categoryId = if (current.type == TransactionType.EXPENSE) current.categoryId else null,
-                paymentMethod = if (current.type == TransactionType.EXPENSE) current.paymentMethod else null,
-                sourceName = if (current.type == TransactionType.INCOME) current.sourceName.trim() else null
+                categoryId = current.categoryId,
+                paymentMethod = if (current.type == TransactionType.EXPENSE) current.paymentMethod else null
             )
             repository.upsertTransaction(entry)
             savedFlag.value = true

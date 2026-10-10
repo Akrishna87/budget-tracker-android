@@ -107,18 +107,21 @@ fun AddTransactionScreen(
             )
         }
 
-        if (draft.type == TransactionType.EXPENSE) {
-            item {
-                Column {
-                    Text("Category (tap one)", style = MaterialTheme.typography.labelLarge, color = colors.muted)
-                    Spacer(Modifier.height(8.dp))
-                    CategoryChipFlow(
-                        categories = state.categories,
-                        selected = draft.categoryId,
-                        onSelect = viewModel::setCategory
-                    )
-                }
+        item {
+            Column {
+                Text("Category (tap one)", style = MaterialTheme.typography.labelLarge, color = colors.muted)
+                Spacer(Modifier.height(8.dp))
+                CategoryChipFlow(
+                    categories = state.categories,
+                    selected = draft.categoryId,
+                    onSelect = viewModel::setCategory,
+                    accentColor = if (draft.type == TransactionType.INCOME) colors.income else colors.expense,
+                    accentOnColor = if (draft.type == TransactionType.INCOME) colors.accentOnColor else Color(0xFF3A1400)
+                )
             }
+        }
+
+        if (draft.type == TransactionType.EXPENSE) {
             item {
                 Column {
                     Text("Payment method (tap one)", style = MaterialTheme.typography.labelLarge, color = colors.muted)
@@ -129,16 +132,6 @@ fun AddTransactionScreen(
                         onSelect = viewModel::setPaymentMethod
                     )
                 }
-            }
-        } else {
-            item {
-                OutlinedTextField(
-                    value = draft.sourceName,
-                    onValueChange = viewModel::setSourceName,
-                    modifier = Modifier.fillMaxWidth(),
-                    label = { Text("Income source") },
-                    placeholder = { Text("e.g. Salary – Primary") }
-                )
             }
         }
 
@@ -240,9 +233,10 @@ private fun ToggleButton(
 private fun CategoryChipFlow(
     categories: List<CategoryEntity>,
     selected: String?,
-    onSelect: (String) -> Unit
+    onSelect: (String) -> Unit,
+    accentColor: Color,
+    accentOnColor: Color
 ) {
-    val colors = BudgetTheme.colors
     FlowRow(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -254,9 +248,9 @@ private fun CategoryChipFlow(
                 label = { Text(category.name) },
                 leadingIcon = { Icon(categoryIcon(category), contentDescription = null, modifier = Modifier.height(16.dp)) },
                 colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = colors.expense,
-                    selectedLabelColor = Color(0xFF3A1400),
-                    selectedLeadingIconColor = Color(0xFF3A1400)
+                    selectedContainerColor = accentColor,
+                    selectedLabelColor = accentOnColor,
+                    selectedLeadingIconColor = accentOnColor
                 )
             )
         }

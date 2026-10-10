@@ -17,12 +17,9 @@ data class TransactionEntity(
     /** ISO date, "YYYY-MM-DD", chosen by the user (not necessarily today). */
     val date: String,
     val note: String = "",
-    /** Expense only. */
     val categoryId: String? = null,
     /** Expense only. */
     val paymentMethod: String? = null,
-    /** Income only. */
-    val sourceName: String? = null,
     /** Insertion order, used for "most recent entry" independent of the user-editable date. */
     val createdAt: Long = System.currentTimeMillis()
 )

@@ -233,19 +233,12 @@ private fun TransactionRow(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            val icon = if (transaction.type == TransactionType.INCOME) {
-                Icons.Outlined.ArrowCircleUp
-            } else {
-                category?.let { categoryIcon(it) } ?: Icons.Outlined.ArrowCircleDown
-            }
+            val fallbackIcon = if (transaction.type == TransactionType.INCOME) Icons.Outlined.ArrowCircleUp else Icons.Outlined.ArrowCircleDown
+            val icon = category?.let { categoryIcon(it) } ?: fallbackIcon
             IconBadge(icon = icon, tint = if (transaction.type == TransactionType.INCOME) colors.income else colors.expense)
 
             Column(Modifier.weight(1f)) {
-                val title = if (transaction.type == TransactionType.INCOME) {
-                    transaction.sourceName?.takeIf { it.isNotBlank() } ?: "Income"
-                } else {
-                    category?.name ?: "(deleted category)"
-                }
+                val title = category?.name ?: "Uncategorized"
                 Text(title, fontWeight = FontWeight.SemiBold)
                 val subParts = mutableListOf(formatDateLong(transaction.date))
                 if (transaction.type == TransactionType.EXPENSE) transaction.paymentMethod?.let { subParts.add(it) }

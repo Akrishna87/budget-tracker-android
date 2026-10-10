@@ -16,20 +16,31 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.util.UUID
 
-data class CategorySpend(
+data class CategoryTotal(
     val category: CategoryEntity,
-    val spent: Double
+    val amount: Double
 )
 
 data class DashboardUiState(
     val selectedMonth: String = currentMonthKey(),
     val totalIncome: Double = 0.0,
     val totalExpense: Double = 0.0,
-    val categorySpend: List<CategorySpend> = emptyList(),
+    val incomeByCategory: List<CategoryTotal> = emptyList(),
+    val expenseByCategory: List<CategoryTotal> = emptyList(),
     val mostRecentExpense: TransactionEntity? = null,
     val justRepeatedId: String? = null
 ) {
     val net: Double get() = totalIncome - totalExpense
+}
+
+private fun totalsByCategory(transactions: List<TransactionEntity>, categories: List<CategoryEntity>): List<CategoryTotal> {
+    return transactions
+        .groupBy { it.categoryId }
+        .mapNotNull { (categoryId, items) ->
+            val category = categories.find { it.id == categoryId } ?: return@mapNotNull null
+            CategoryTotal(category, items.sumOf { it.amount })
+        }
+        .sortedByDescending { it.amount }
 }
 
 class DashboardViewModel(private val repository: BudgetRepository) : ViewModel() {
@@ -45,26 +56,15 @@ class DashboardViewModel(private val repository: BudgetRepository) : ViewModel()
         justRepeatedId
     ) { month, transactions, categories, mostRecent, repeatedId ->
         val monthTransactions = transactions.filter { monthKeyOfDate(it.date) == month }
-        val income = monthTransactions.filter { it.type == TransactionType.INCOME }.sumOf { it.amount }
-        val expense = monthTransactions.filter { it.type == TransactionType.EXPENSE }.sumOf { it.amount }
-
-        val spendByCategory = monthTransactions
-            .filter { it.type == TransactionType.EXPENSE }
-            .groupBy { it.categoryId }
-            .mapValues { (_, items) -> items.sumOf { it.amount } }
-
-        val categorySpend = spendByCategory.entries
-            .mapNotNull { (categoryId, spent) ->
-                val category = categories.find { it.id == categoryId } ?: return@mapNotNull null
-                CategorySpend(category, spent)
-            }
-            .sortedByDescending { it.spent }
+        val incomeTransactions = monthTransactions.filter { it.type == TransactionType.INCOME }
+        val expenseTransactions = monthTransactions.filter { it.type == TransactionType.EXPENSE }
 
         DashboardUiState(
             selectedMonth = month,
-            totalIncome = income,
-            totalExpense = expense,
-            categorySpend = categorySpend,
+            totalIncome = incomeTransactions.sumOf { it.amount },
+            totalExpense = expenseTransactions.sumOf { it.amount },
+            incomeByCategory = totalsByCategory(incomeTransactions, categories),
+            expenseByCategory = totalsByCategory(expenseTransactions, categories),
             mostRecentExpense = mostRecent,
             justRepeatedId = repeatedId
         )
