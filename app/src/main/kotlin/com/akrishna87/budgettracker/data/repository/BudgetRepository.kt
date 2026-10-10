@@ -2,6 +2,8 @@ package com.akrishna87.budgettracker.data.repository
 
 import com.akrishna87.budgettracker.data.db.CategoryDao
 import com.akrishna87.budgettracker.data.db.CategoryEntity
+import com.akrishna87.budgettracker.data.db.LoanDao
+import com.akrishna87.budgettracker.data.db.LoanEntity
 import com.akrishna87.budgettracker.data.db.RecurringExpenseDao
 import com.akrishna87.budgettracker.data.db.RecurringExpenseEntity
 import com.akrishna87.budgettracker.data.db.SubcategoryDao
@@ -14,7 +16,8 @@ class BudgetRepository(
     private val categoryDao: CategoryDao,
     private val subcategoryDao: SubcategoryDao,
     private val transactionDao: TransactionDao,
-    private val recurringExpenseDao: RecurringExpenseDao
+    private val recurringExpenseDao: RecurringExpenseDao,
+    private val loanDao: LoanDao
 ) {
     fun observeCategories(): Flow<List<CategoryEntity>> = categoryDao.observeAll()
 
@@ -46,4 +49,10 @@ class BudgetRepository(
     suspend fun upsertRecurringExpense(expense: RecurringExpenseEntity) = recurringExpenseDao.upsert(expense)
 
     suspend fun deleteRecurringExpense(expense: RecurringExpenseEntity) = recurringExpenseDao.delete(expense)
+
+    fun observeLoans(): Flow<List<LoanEntity>> = loanDao.observeAll()
+
+    suspend fun upsertLoan(loan: LoanEntity) = loanDao.upsert(loan)
+
+    suspend fun deleteLoan(loan: LoanEntity) = loanDao.delete(loan)
 }

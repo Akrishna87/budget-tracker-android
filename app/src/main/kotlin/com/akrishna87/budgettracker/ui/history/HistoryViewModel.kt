@@ -20,7 +20,9 @@ data class HistoryFilter(
     val type: TypeFilter = TypeFilter.ALL,
     val categoryId: String? = null,
     val month: String? = null,
-    val search: String = ""
+    val search: String = "",
+    /** null = no constraint; true/false = only entries whose category is/isn't marked as an investment. */
+    val investmentFilter: Boolean? = null
 )
 
 data class HistoryUiState(
@@ -48,7 +50,9 @@ class HistoryViewModel(private val repository: BudgetRepository) : ViewModel() {
                 (currentFilter.type == TypeFilter.EXPENSE && tx.type == TransactionType.EXPENSE)) &&
                 (currentFilter.categoryId == null || tx.categoryId == currentFilter.categoryId) &&
                 (currentFilter.month == null || monthKeyOfDate(tx.date) == currentFilter.month) &&
-                (currentFilter.search.isBlank() || tx.note.contains(currentFilter.search, ignoreCase = true))
+                (currentFilter.search.isBlank() || tx.note.contains(currentFilter.search, ignoreCase = true)) &&
+                (currentFilter.investmentFilter == null ||
+                    (categories.find { it.id == tx.categoryId }?.isInvestment ?: false) == currentFilter.investmentFilter)
         }.sortedWith(compareByDescending<TransactionEntity> { it.date }.thenByDescending { it.createdAt })
 
         HistoryUiState(
@@ -74,6 +78,10 @@ class HistoryViewModel(private val repository: BudgetRepository) : ViewModel() {
 
     fun setMonthFilter(month: String?) {
         filter.value = filter.value.copy(month = month)
+    }
+
+    fun setInvestmentFilter(investmentFilter: Boolean?) {
+        filter.value = filter.value.copy(investmentFilter = investmentFilter)
     }
 
     fun setSearch(search: String) {

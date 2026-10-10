@@ -22,7 +22,8 @@ class BudgetTrackerApp : Application() {
             database.categoryDao(),
             database.subcategoryDao(),
             database.transactionDao(),
-            database.recurringExpenseDao()
+            database.recurringExpenseDao(),
+            database.loanDao()
         )
 
         scheduleRecurringExpenseCheck()

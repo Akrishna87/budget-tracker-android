@@ -44,6 +44,7 @@ import com.akrishna87.budgettracker.ui.dashboard.DashboardScreen
 import com.akrishna87.budgettracker.ui.dashboard.DashboardViewModel
 import com.akrishna87.budgettracker.ui.history.HistoryScreen
 import com.akrishna87.budgettracker.ui.history.HistoryViewModel
+import com.akrishna87.budgettracker.ui.history.TypeFilter
 import com.akrishna87.budgettracker.ui.recurring.RecurringScreen
 import com.akrishna87.budgettracker.ui.recurring.RecurringViewModel
 import com.akrishna87.budgettracker.ui.settings.SettingsScreen
@@ -53,6 +54,17 @@ import kotlinx.coroutines.launch
 
 private const val TRANSITION_MS = 220
 private const val MAIN_ROUTE = "main"
+
+// Set by Dashboard's various "view these entries" taps and consumed once
+// History opens, so a tap jumps straight to the right filtered list without
+// threading nav arguments through the route string. Each tap sets every
+// field explicitly (never a partial update) so a fresh navigation always
+// replaces whatever filter was left over from last time.
+private data class PendingHistoryFilter(
+    val categoryId: String? = null,
+    val type: TypeFilter = TypeFilter.ALL,
+    val investmentFilter: Boolean? = null
+)
 
 @Composable
 fun BudgetNavHost(factory: BudgetViewModelFactory) {
@@ -70,10 +82,7 @@ fun BudgetNavHost(factory: BudgetViewModelFactory) {
     val pagerState = rememberPagerState(pageCount = { Screen.bottomNavItems.size })
     val historyPageIndex = Screen.bottomNavItems.indexOf(Screen.History)
 
-    // Set by Dashboard's "tap a category" action and consumed once History
-    // opens, so tapping a category jumps straight to its individual entries
-    // without threading a nav argument through the route string.
-    var pendingHistoryCategoryId by remember { mutableStateOf<String?>(null) }
+    var pendingHistoryFilter by remember { mutableStateOf<PendingHistoryFilter?>(null) }
 
     val currentDestination = backStackEntry?.destination
     val isOnMain = currentDestination?.route == MAIN_ROUTE
@@ -147,17 +156,31 @@ fun BudgetNavHost(factory: BudgetViewModelFactory) {
                             DashboardScreen(
                                 viewModel = viewModel,
                                 onOpenCategory = { categoryId ->
-                                    pendingHistoryCategoryId = categoryId
+                                    pendingHistoryFilter = PendingHistoryFilter(categoryId = categoryId)
+                                    scope.launch { pagerState.animateScrollToPage(historyPageIndex) }
+                                },
+                                onOpenIncome = {
+                                    pendingHistoryFilter = PendingHistoryFilter(type = TypeFilter.INCOME)
+                                    scope.launch { pagerState.animateScrollToPage(historyPageIndex) }
+                                },
+                                onOpenInvestments = {
+                                    pendingHistoryFilter = PendingHistoryFilter(type = TypeFilter.EXPENSE, investmentFilter = true)
+                                    scope.launch { pagerState.animateScrollToPage(historyPageIndex) }
+                                },
+                                onOpenExpenses = {
+                                    pendingHistoryFilter = PendingHistoryFilter(type = TypeFilter.EXPENSE, investmentFilter = false)
                                     scope.launch { pagerState.animateScrollToPage(historyPageIndex) }
                                 }
                             )
                         }
                         Screen.History -> {
                             val viewModel: HistoryViewModel = viewModel(factory = factory)
-                            LaunchedEffect(pendingHistoryCategoryId) {
-                                pendingHistoryCategoryId?.let {
-                                    viewModel.setCategoryFilter(it)
-                                    pendingHistoryCategoryId = null
+                            LaunchedEffect(pendingHistoryFilter) {
+                                pendingHistoryFilter?.let { f ->
+                                    viewModel.setCategoryFilter(f.categoryId)
+                                    viewModel.setTypeFilter(f.type)
+                                    viewModel.setInvestmentFilter(f.investmentFilter)
+                                    pendingHistoryFilter = null
                                 }
                             }
                             HistoryScreen(

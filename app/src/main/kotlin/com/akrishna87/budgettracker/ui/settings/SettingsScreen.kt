@@ -21,10 +21,12 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -42,8 +44,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.akrishna87.budgettracker.data.db.CategoryEntity
+import com.akrishna87.budgettracker.data.db.LoanEntity
 import com.akrishna87.budgettracker.data.db.SubcategoryEntity
 import com.akrishna87.budgettracker.ui.components.ElevatedPanel
 import com.akrishna87.budgettracker.ui.components.IconBadge
@@ -57,9 +61,12 @@ import kotlinx.coroutines.launch
 fun SettingsScreen(viewModel: SettingsViewModel) {
     val categories by viewModel.categories.collectAsState()
     val subcategories by viewModel.subcategories.collectAsState()
+    val loans by viewModel.loans.collectAsState()
     var editingCategory by remember { mutableStateOf<CategoryEntity?>(null) }
     var pendingDelete by remember { mutableStateOf<CategoryEntity?>(null) }
     var expandedCategoryId by remember { mutableStateOf<String?>(null) }
+    var editingLoan by remember { mutableStateOf<LoanEntity?>(null) }
+    var pendingDeleteLoan by remember { mutableStateOf<LoanEntity?>(null) }
     val snackbarHostState = LocalSnackbarHostState.current
     val scope = rememberCoroutineScope()
     val colors = BudgetTheme.colors
@@ -84,8 +91,8 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
             if (editingCategory?.id == category.id) {
                 CategoryEditRow(
                     initial = category,
-                    onSave = { name, budget ->
-                        viewModel.updateCategory(category, name, budget)
+                    onSave = { name, budget, isInvestment ->
+                        viewModel.updateCategory(category, name, budget, isInvestment)
                         editingCategory = null
                     },
                     onCancel = { editingCategory = null }
@@ -115,6 +122,37 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
         item {
             AddCategoryRow(onAdd = viewModel::addCategory)
         }
+
+        item {
+            Text(
+                "Loans",
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.padding(top = 10.dp)
+            )
+        }
+
+        items(loans, key = { it.id }) { loan ->
+            if (editingLoan?.id == loan.id) {
+                LoanEditRow(
+                    initial = loan,
+                    onSave = { name, outstanding, monthlyPayment ->
+                        viewModel.updateLoan(loan, name, outstanding, monthlyPayment)
+                        editingLoan = null
+                    },
+                    onCancel = { editingLoan = null }
+                )
+            } else {
+                LoanRow(
+                    loan = loan,
+                    onEdit = { editingLoan = loan },
+                    onDelete = { pendingDeleteLoan = loan }
+                )
+            }
+        }
+
+        item {
+            AddLoanRow(onAdd = viewModel::addLoan)
+        }
     }
 
     pendingDelete?.let { category ->
@@ -139,6 +177,32 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
             },
             dismissButton = {
                 TextButton(onClick = { pendingDelete = null }) { Text("Cancel") }
+            }
+        )
+    }
+
+    pendingDeleteLoan?.let { loan ->
+        AlertDialog(
+            onDismissRequest = { pendingDeleteLoan = null },
+            title = { Text("Delete \"${loan.name}\"?") },
+            text = { Text("This removes it from the Dashboard's Loan Details.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.deleteLoan(loan)
+                    pendingDeleteLoan = null
+                    scope.launch {
+                        val result = snackbarHostState.showSnackbar(
+                            message = "\"${loan.name}\" deleted",
+                            actionLabel = "Undo"
+                        )
+                        if (result == androidx.compose.material3.SnackbarResult.ActionPerformed) {
+                            viewModel.restoreLoan(loan)
+                        }
+                    }
+                }) { Text("Delete") }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingDeleteLoan = null }) { Text("Cancel") }
             }
         )
     }
@@ -245,11 +309,12 @@ private fun SubcategoryManager(
 @Composable
 private fun CategoryEditRow(
     initial: CategoryEntity,
-    onSave: (String, Double) -> Unit,
+    onSave: (String, Double, Boolean) -> Unit,
     onCancel: () -> Unit
 ) {
     var name by remember { mutableStateOf(initial.name) }
     var budget by remember { mutableStateOf(if (initial.budget > 0) initial.budget.toString() else "") }
+    var isInvestment by remember { mutableStateOf(initial.isInvestment) }
 
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -264,8 +329,12 @@ private fun CategoryEditRow(
                 modifier = Modifier.fillMaxWidth(),
                 label = { Text("Monthly budget (optional)") }
             )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Checkbox(checked = isInvestment, onCheckedChange = { isInvestment = it })
+                Text("This is an investment category (Mutual Fund, RD, ...)")
+            }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = { onSave(name, budget.toDoubleOrNull() ?: 0.0) }) { Text("Save") }
+                Button(onClick = { onSave(name, budget.toDoubleOrNull() ?: 0.0, isInvestment) }) { Text("Save") }
                 TextButton(onClick = onCancel) { Text("Cancel") }
             }
         }
@@ -273,9 +342,10 @@ private fun CategoryEditRow(
 }
 
 @Composable
-private fun AddCategoryRow(onAdd: (String, Double) -> Unit) {
+private fun AddCategoryRow(onAdd: (String, Double, Boolean) -> Unit) {
     var name by remember { mutableStateOf("") }
     var budget by remember { mutableStateOf("") }
+    var isInvestment by remember { mutableStateOf(false) }
 
     ElevatedPanel(contentPadding = 14) {
         Text("Add category", style = MaterialTheme.typography.titleMedium)
@@ -293,14 +363,133 @@ private fun AddCategoryRow(onAdd: (String, Double) -> Unit) {
             modifier = Modifier.fillMaxWidth(),
             label = { Text("Monthly budget (optional)") }
         )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Checkbox(checked = isInvestment, onCheckedChange = { isInvestment = it })
+            Text("This is an investment category (Mutual Fund, RD, ...)")
+        }
         Spacer(Modifier.height(10.dp))
         Button(
             modifier = Modifier.fillMaxWidth(),
             onClick = {
-                onAdd(name, budget.toDoubleOrNull() ?: 0.0)
+                onAdd(name, budget.toDoubleOrNull() ?: 0.0, isInvestment)
                 name = ""
                 budget = ""
+                isInvestment = false
             }
         ) { Text("Add category") }
+    }
+}
+
+@Composable
+private fun LoanRow(loan: LoanEntity, onEdit: () -> Unit, onDelete: () -> Unit) {
+    val colors = BudgetTheme.colors
+    Card(
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        shape = RoundedCornerShape(14.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(12.dp).fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text(loan.name, fontWeight = FontWeight.SemiBold)
+                Text(
+                    "${formatMoney(loan.outstandingAmount)} outstanding" +
+                        if (loan.monthlyPayment > 0) " · ${formatMoney(loan.monthlyPayment)}/mo" else "",
+                    color = colors.muted,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+            IconButton(onClick = onEdit) { Icon(Icons.Filled.Edit, contentDescription = "Edit") }
+            IconButton(onClick = onDelete) { Icon(Icons.Filled.Delete, contentDescription = "Delete", tint = colors.danger) }
+        }
+    }
+}
+
+@Composable
+private fun LoanEditRow(
+    initial: LoanEntity,
+    onSave: (String, Double, Double) -> Unit,
+    onCancel: () -> Unit
+) {
+    var name by remember { mutableStateOf(initial.name) }
+    var outstanding by remember { mutableStateOf(initial.outstandingAmount.toString()) }
+    var monthlyPayment by remember { mutableStateOf(if (initial.monthlyPayment > 0) initial.monthlyPayment.toString() else "") }
+
+    Card(
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        shape = RoundedCornerShape(14.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            OutlinedTextField(value = name, onValueChange = { name = it }, modifier = Modifier.fillMaxWidth(), label = { Text("Name") })
+            OutlinedTextField(
+                value = outstanding,
+                onValueChange = { outstanding = it },
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("Outstanding amount") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
+            )
+            OutlinedTextField(
+                value = monthlyPayment,
+                onValueChange = { monthlyPayment = it },
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("Monthly payment (optional, for months-left)") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(onClick = {
+                    onSave(name, outstanding.toDoubleOrNull() ?: 0.0, monthlyPayment.toDoubleOrNull() ?: 0.0)
+                }) { Text("Save") }
+                TextButton(onClick = onCancel) { Text("Cancel") }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AddLoanRow(onAdd: (String, Double, Double) -> Unit) {
+    var name by remember { mutableStateOf("") }
+    var outstanding by remember { mutableStateOf("") }
+    var monthlyPayment by remember { mutableStateOf("") }
+
+    ElevatedPanel(contentPadding = 14) {
+        Text("Add loan", style = MaterialTheme.typography.titleMedium)
+        Spacer(Modifier.height(10.dp))
+        OutlinedTextField(
+            value = name,
+            onValueChange = { name = it },
+            modifier = Modifier.fillMaxWidth(),
+            label = { Text("Name") },
+            placeholder = { Text("e.g. Home loan") }
+        )
+        Spacer(Modifier.height(8.dp))
+        OutlinedTextField(
+            value = outstanding,
+            onValueChange = { outstanding = it },
+            modifier = Modifier.fillMaxWidth(),
+            label = { Text("Outstanding amount") },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
+        )
+        Spacer(Modifier.height(8.dp))
+        OutlinedTextField(
+            value = monthlyPayment,
+            onValueChange = { monthlyPayment = it },
+            modifier = Modifier.fillMaxWidth(),
+            label = { Text("Monthly payment (optional, for months-left)") },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
+        )
+        Spacer(Modifier.height(10.dp))
+        Button(
+            modifier = Modifier.fillMaxWidth(),
+            onClick = {
+                onAdd(name, outstanding.toDoubleOrNull() ?: 0.0, monthlyPayment.toDoubleOrNull() ?: 0.0)
+                name = ""
+                outstanding = ""
+                monthlyPayment = ""
+            }
+        ) { Text("Add loan") }
     }
 }

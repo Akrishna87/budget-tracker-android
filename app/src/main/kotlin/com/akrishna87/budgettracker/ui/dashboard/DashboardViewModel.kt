@@ -3,6 +3,7 @@ package com.akrishna87.budgettracker.ui.dashboard
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.akrishna87.budgettracker.data.db.CategoryEntity
+import com.akrishna87.budgettracker.data.db.LoanEntity
 import com.akrishna87.budgettracker.data.db.TransactionEntity
 import com.akrishna87.budgettracker.data.db.TransactionType
 import com.akrishna87.budgettracker.data.repository.BudgetRepository
@@ -25,8 +26,12 @@ data class DashboardUiState(
     val selectedMonth: String = currentMonthKey(),
     val totalIncome: Double = 0.0,
     val totalExpense: Double = 0.0,
+    val totalInvestment: Double = 0.0,
+    val totalPlainExpense: Double = 0.0,
     val incomeByCategory: List<CategoryTotal> = emptyList(),
     val expenseByCategory: List<CategoryTotal> = emptyList(),
+    val loans: List<LoanEntity> = emptyList(),
+    val totalLoanOutstanding: Double = 0.0,
     val mostRecentExpense: TransactionEntity? = null,
     val justRepeatedId: String? = null
 ) {
@@ -58,16 +63,26 @@ class DashboardViewModel(private val repository: BudgetRepository) : ViewModel()
         val monthTransactions = transactions.filter { monthKeyOfDate(it.date) == month }
         val incomeTransactions = monthTransactions.filter { it.type == TransactionType.INCOME }
         val expenseTransactions = monthTransactions.filter { it.type == TransactionType.EXPENSE }
+        val investmentTransactions = expenseTransactions.filter {
+            categories.find { c -> c.id == it.categoryId }?.isInvestment == true
+        }
+        val plainExpenseTransactions = expenseTransactions.filter {
+            categories.find { c -> c.id == it.categoryId }?.isInvestment != true
+        }
 
         DashboardUiState(
             selectedMonth = month,
             totalIncome = incomeTransactions.sumOf { it.amount },
             totalExpense = expenseTransactions.sumOf { it.amount },
+            totalInvestment = investmentTransactions.sumOf { it.amount },
+            totalPlainExpense = plainExpenseTransactions.sumOf { it.amount },
             incomeByCategory = totalsByCategory(incomeTransactions, categories),
             expenseByCategory = totalsByCategory(expenseTransactions, categories),
             mostRecentExpense = mostRecent,
             justRepeatedId = repeatedId
         )
+    }.combine(repository.observeLoans()) { state, loans ->
+        state.copy(loans = loans, totalLoanOutstanding = loans.sumOf { it.outstandingAmount })
     }.stateIn(
         scope = viewModelScope,
         started = kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(5000),
