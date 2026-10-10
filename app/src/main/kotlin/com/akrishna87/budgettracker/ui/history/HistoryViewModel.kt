@@ -3,6 +3,7 @@ package com.akrishna87.budgettracker.ui.history
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.akrishna87.budgettracker.data.db.CategoryEntity
+import com.akrishna87.budgettracker.data.db.SubcategoryEntity
 import com.akrishna87.budgettracker.data.db.TransactionEntity
 import com.akrishna87.budgettracker.data.db.TransactionType
 import com.akrishna87.budgettracker.data.repository.BudgetRepository
@@ -25,6 +26,7 @@ data class HistoryFilter(
 data class HistoryUiState(
     val filter: HistoryFilter = HistoryFilter(),
     val categories: List<CategoryEntity> = emptyList(),
+    val subcategories: List<SubcategoryEntity> = emptyList(),
     val availableMonths: List<String> = emptyList(),
     val transactions: List<TransactionEntity> = emptyList()
 )
@@ -36,8 +38,9 @@ class HistoryViewModel(private val repository: BudgetRepository) : ViewModel() {
     val uiState: StateFlow<HistoryUiState> = combine(
         filter,
         repository.observeTransactions(),
-        repository.observeCategories()
-    ) { currentFilter, transactions, categories ->
+        repository.observeCategories(),
+        repository.observeSubcategories()
+    ) { currentFilter, transactions, categories, subcategories ->
         val months = transactions.map { monthKeyOfDate(it.date) }.distinct().sortedDescending()
         val filtered = transactions.filter { tx ->
             (currentFilter.type == TypeFilter.ALL ||
@@ -51,6 +54,7 @@ class HistoryViewModel(private val repository: BudgetRepository) : ViewModel() {
         HistoryUiState(
             filter = currentFilter,
             categories = categories,
+            subcategories = subcategories,
             availableMonths = months,
             transactions = filtered
         )

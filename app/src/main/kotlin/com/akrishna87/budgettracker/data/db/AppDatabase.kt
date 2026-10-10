@@ -14,15 +14,17 @@ import kotlinx.coroutines.launch
 @Database(
     entities = [
         CategoryEntity::class,
+        SubcategoryEntity::class,
         TransactionEntity::class,
         RecurringExpenseEntity::class
     ],
-    version = 5,
+    version = 6,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun categoryDao(): CategoryDao
+    abstract fun subcategoryDao(): SubcategoryDao
     abstract fun transactionDao(): TransactionDao
     abstract fun recurringExpenseDao(): RecurringExpenseDao
 

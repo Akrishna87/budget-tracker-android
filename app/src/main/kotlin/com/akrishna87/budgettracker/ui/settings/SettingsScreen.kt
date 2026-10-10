@@ -1,7 +1,10 @@
 package com.akrishna87.budgettracker.ui.settings
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -13,12 +16,16 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -37,6 +44,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.akrishna87.budgettracker.data.db.CategoryEntity
+import com.akrishna87.budgettracker.data.db.SubcategoryEntity
 import com.akrishna87.budgettracker.ui.components.ElevatedPanel
 import com.akrishna87.budgettracker.ui.components.IconBadge
 import com.akrishna87.budgettracker.ui.components.LocalSnackbarHostState
@@ -48,8 +56,10 @@ import kotlinx.coroutines.launch
 @Composable
 fun SettingsScreen(viewModel: SettingsViewModel) {
     val categories by viewModel.categories.collectAsState()
+    val subcategories by viewModel.subcategories.collectAsState()
     var editingCategory by remember { mutableStateOf<CategoryEntity?>(null) }
     var pendingDelete by remember { mutableStateOf<CategoryEntity?>(null) }
+    var expandedCategoryId by remember { mutableStateOf<String?>(null) }
     val snackbarHostState = LocalSnackbarHostState.current
     val scope = rememberCoroutineScope()
     val colors = BudgetTheme.colors
@@ -63,7 +73,8 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
     ) {
         item {
             Text(
-                "Set a monthly budget per category to track it on the Dashboard. Leave budget at 0 for no limit.",
+                "Set a monthly budget per category to track it on the Dashboard. Leave budget at 0 for no limit. " +
+                    "Tap a category to add subcategories under it.",
                 color = colors.muted,
                 style = MaterialTheme.typography.bodyMedium
             )
@@ -80,11 +91,24 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
                     onCancel = { editingCategory = null }
                 )
             } else {
-                CategoryRow(
-                    category = category,
-                    onEdit = { editingCategory = category },
-                    onDelete = { pendingDelete = category }
-                )
+                Column {
+                    CategoryRow(
+                        category = category,
+                        expanded = expandedCategoryId == category.id,
+                        onToggleExpand = {
+                            expandedCategoryId = if (expandedCategoryId == category.id) null else category.id
+                        },
+                        onEdit = { editingCategory = category },
+                        onDelete = { pendingDelete = category }
+                    )
+                    if (expandedCategoryId == category.id) {
+                        SubcategoryManager(
+                            subcategories = subcategories.filter { it.categoryId == category.id },
+                            onAdd = { name -> viewModel.addSubcategory(category.id, name) },
+                            onDelete = viewModel::deleteSubcategory
+                        )
+                    }
+                }
             }
         }
 
@@ -121,7 +145,13 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
 }
 
 @Composable
-private fun CategoryRow(category: CategoryEntity, onEdit: () -> Unit, onDelete: () -> Unit) {
+private fun CategoryRow(
+    category: CategoryEntity,
+    expanded: Boolean,
+    onToggleExpand: () -> Unit,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit
+) {
     val colors = BudgetTheme.colors
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -129,7 +159,10 @@ private fun CategoryRow(category: CategoryEntity, onEdit: () -> Unit, onDelete: 
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Row(
-            modifier = Modifier.padding(12.dp).fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onToggleExpand)
+                .padding(12.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
@@ -140,8 +173,71 @@ private fun CategoryRow(category: CategoryEntity, onEdit: () -> Unit, onDelete: 
                 color = colors.muted,
                 style = MaterialTheme.typography.bodyMedium
             )
+            Icon(
+                if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
+                contentDescription = if (expanded) "Collapse" else "Expand",
+                tint = colors.muted
+            )
             IconButton(onClick = onEdit) { Icon(Icons.Filled.Edit, contentDescription = "Edit") }
             IconButton(onClick = onDelete) { Icon(Icons.Filled.Delete, contentDescription = "Delete", tint = colors.danger) }
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun SubcategoryManager(
+    subcategories: List<SubcategoryEntity>,
+    onAdd: (String) -> Unit,
+    onDelete: (SubcategoryEntity) -> Unit
+) {
+    val colors = BudgetTheme.colors
+    var newName by remember { mutableStateOf("") }
+
+    Column(Modifier.padding(start = 16.dp, top = 8.dp, end = 4.dp, bottom = 4.dp)) {
+        if (subcategories.isEmpty()) {
+            Text(
+                "No subcategories yet.",
+                color = colors.muted,
+                style = MaterialTheme.typography.bodySmall
+            )
+            Spacer(Modifier.height(8.dp))
+        } else {
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                subcategories.forEach { subcategory ->
+                    FilterChip(
+                        selected = false,
+                        onClick = {},
+                        label = { Text(subcategory.name) },
+                        trailingIcon = {
+                            Icon(
+                                Icons.Filled.Close,
+                                contentDescription = "Delete ${subcategory.name}",
+                                modifier = Modifier
+                                    .height(16.dp)
+                                    .clickable(onClick = { onDelete(subcategory) })
+                            )
+                        }
+                    )
+                }
+            }
+            Spacer(Modifier.height(8.dp))
+        }
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            OutlinedTextField(
+                value = newName,
+                onValueChange = { newName = it },
+                modifier = Modifier.weight(1f),
+                label = { Text("New subcategory") },
+                singleLine = true
+            )
+            TextButton(onClick = {
+                onAdd(newName)
+                newName = ""
+            }) { Text("Add") }
         }
     }
 }

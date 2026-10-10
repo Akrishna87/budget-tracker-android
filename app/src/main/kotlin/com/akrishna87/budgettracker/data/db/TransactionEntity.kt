@@ -18,6 +18,7 @@ data class TransactionEntity(
     val date: String,
     val note: String = "",
     val categoryId: String? = null,
+    val subcategoryId: String? = null,
     /** Expense only. */
     val paymentMethod: String? = null,
     /** Insertion order, used for "most recent entry" independent of the user-editable date. */

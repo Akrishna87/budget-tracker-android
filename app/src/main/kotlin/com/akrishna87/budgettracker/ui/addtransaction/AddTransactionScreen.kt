@@ -122,6 +122,23 @@ fun AddTransactionScreen(
             }
         }
 
+        val subcategoriesForCategory = state.subcategories.filter { it.categoryId == draft.categoryId }
+        if (subcategoriesForCategory.isNotEmpty()) {
+            item {
+                Column {
+                    Text("Subcategory (optional)", style = MaterialTheme.typography.labelLarge, color = colors.muted)
+                    Spacer(Modifier.height(8.dp))
+                    ChipFlow(
+                        items = subcategoriesForCategory.map { it.id to it.name },
+                        selected = draft.subcategoryId,
+                        onSelect = { id -> viewModel.setSubcategory(if (draft.subcategoryId == id) null else id) },
+                        accentColor = if (draft.type == TransactionType.INCOME) colors.income else colors.expense,
+                        accentOnColor = if (draft.type == TransactionType.INCOME) colors.accentOnColor else Color(0xFF3A1400)
+                    )
+                }
+            }
+        }
+
         if (draft.type == TransactionType.EXPENSE) {
             item {
                 Column {
@@ -130,7 +147,9 @@ fun AddTransactionScreen(
                     ChipFlow(
                         items = state.paymentMethods.map { it to it },
                         selected = draft.paymentMethod,
-                        onSelect = viewModel::setPaymentMethod
+                        onSelect = viewModel::setPaymentMethod,
+                        accentColor = colors.expense,
+                        accentOnColor = Color(0xFF3A1400)
                     )
                 }
             }
@@ -263,9 +282,10 @@ private fun CategoryChipFlow(
 private fun ChipFlow(
     items: List<Pair<String, String>>,
     selected: String?,
-    onSelect: (String) -> Unit
+    onSelect: (String) -> Unit,
+    accentColor: Color,
+    accentOnColor: Color
 ) {
-    val colors = BudgetTheme.colors
     FlowRow(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -276,8 +296,8 @@ private fun ChipFlow(
                 onClick = { onSelect(id) },
                 label = { Text(label) },
                 colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = colors.expense,
-                    selectedLabelColor = Color(0xFF3A1400)
+                    selectedContainerColor = accentColor,
+                    selectedLabelColor = accentOnColor
                 )
             )
         }

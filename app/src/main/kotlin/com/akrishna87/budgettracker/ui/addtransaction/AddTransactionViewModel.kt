@@ -3,6 +3,7 @@ package com.akrishna87.budgettracker.ui.addtransaction
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.akrishna87.budgettracker.data.db.CategoryEntity
+import com.akrishna87.budgettracker.data.db.SubcategoryEntity
 import com.akrishna87.budgettracker.data.db.TransactionEntity
 import com.akrishna87.budgettracker.data.db.TransactionType
 import com.akrishna87.budgettracker.data.repository.BudgetRepository
@@ -23,6 +24,7 @@ data class TransactionDraft(
     val amount: String = "",
     val date: String = todayKey(),
     val categoryId: String? = null,
+    val subcategoryId: String? = null,
     val paymentMethod: String? = null,
     val note: String = "",
     val showMore: Boolean = false
@@ -31,6 +33,7 @@ data class TransactionDraft(
 data class AddTransactionUiState(
     val draft: TransactionDraft = TransactionDraft(),
     val categories: List<CategoryEntity> = emptyList(),
+    val subcategories: List<SubcategoryEntity> = emptyList(),
     val paymentMethods: List<String> = DEFAULT_PAYMENT_METHODS,
     val saved: Boolean = false
 )
@@ -39,6 +42,7 @@ class AddTransactionViewModel(private val repository: BudgetRepository) : ViewMo
 
     private val draft = MutableStateFlow(TransactionDraft())
     private val categories = MutableStateFlow<List<CategoryEntity>>(emptyList())
+    private val subcategories = MutableStateFlow<List<SubcategoryEntity>>(emptyList())
     private val paymentMethods = MutableStateFlow(DEFAULT_PAYMENT_METHODS)
     private val savedFlag = MutableStateFlow(false)
 
@@ -52,6 +56,12 @@ class AddTransactionViewModel(private val repository: BudgetRepository) : ViewMo
                 if (draft.value.categoryId == null && cats.isNotEmpty()) {
                     draft.update { it.copy(categoryId = cats.first().id) }
                 }
+                pushState()
+            }
+        }
+        viewModelScope.launch {
+            repository.observeSubcategories().collect { subs ->
+                subcategories.value = subs
                 pushState()
             }
         }
@@ -72,6 +82,7 @@ class AddTransactionViewModel(private val repository: BudgetRepository) : ViewMo
                 draft.update {
                     it.copy(
                         categoryId = last.categoryId ?: it.categoryId,
+                        subcategoryId = last.subcategoryId,
                         paymentMethod = last.paymentMethod
                     )
                 }
@@ -84,6 +95,7 @@ class AddTransactionViewModel(private val repository: BudgetRepository) : ViewMo
         _uiState.value = AddTransactionUiState(
             draft = draft.value,
             categories = categories.value,
+            subcategories = subcategories.value,
             paymentMethods = paymentMethods.value,
             saved = savedFlag.value
         )
@@ -92,8 +104,9 @@ class AddTransactionViewModel(private val repository: BudgetRepository) : ViewMo
     fun startNew() {
         savedFlag.value = false
         val lastCategory = draft.value.categoryId
+        val lastSubcategory = draft.value.subcategoryId
         val lastPayment = draft.value.paymentMethod
-        draft.value = TransactionDraft(categoryId = lastCategory, paymentMethod = lastPayment)
+        draft.value = TransactionDraft(categoryId = lastCategory, subcategoryId = lastSubcategory, paymentMethod = lastPayment)
         pushState()
     }
 
@@ -105,6 +118,7 @@ class AddTransactionViewModel(private val repository: BudgetRepository) : ViewMo
             amount = formatAmountForEdit(transaction.amount),
             date = transaction.date,
             categoryId = transaction.categoryId,
+            subcategoryId = transaction.subcategoryId,
             paymentMethod = transaction.paymentMethod,
             note = transaction.note,
             showMore = true
@@ -127,7 +141,14 @@ class AddTransactionViewModel(private val repository: BudgetRepository) : ViewMo
     }
 
     fun setCategory(categoryId: String) {
-        draft.update { it.copy(categoryId = categoryId) }
+        // A subcategory belongs to one category, so switching category drops
+        // whatever subcategory was selected under the old one.
+        draft.update { it.copy(categoryId = categoryId, subcategoryId = null) }
+        pushState()
+    }
+
+    fun setSubcategory(subcategoryId: String?) {
+        draft.update { it.copy(subcategoryId = subcategoryId) }
         pushState()
     }
 
@@ -164,6 +185,7 @@ class AddTransactionViewModel(private val repository: BudgetRepository) : ViewMo
                 date = current.date,
                 note = current.note,
                 categoryId = current.categoryId,
+                subcategoryId = current.subcategoryId,
                 paymentMethod = if (current.type == TransactionType.EXPENSE) current.paymentMethod else null
             )
             repository.upsertTransaction(entry)

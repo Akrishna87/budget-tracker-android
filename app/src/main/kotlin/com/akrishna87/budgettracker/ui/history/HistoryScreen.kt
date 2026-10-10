@@ -43,6 +43,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.akrishna87.budgettracker.data.db.CategoryEntity
+import com.akrishna87.budgettracker.data.db.SubcategoryEntity
 import com.akrishna87.budgettracker.data.db.TransactionEntity
 import com.akrishna87.budgettracker.data.db.TransactionType
 import com.akrishna87.budgettracker.ui.components.EmptyState
@@ -126,6 +127,7 @@ fun HistoryScreen(
                 TransactionRow(
                     transaction = tx,
                     category = state.categories.find { it.id == tx.categoryId },
+                    subcategory = state.subcategories.find { it.id == tx.subcategoryId },
                     onEdit = { onEdit(tx) },
                     onDeleteRequested = { pendingDelete = tx }
                 )
@@ -220,6 +222,7 @@ private fun DropdownFilterButton(label: String, onClick: () -> Unit) {
 private fun TransactionRow(
     transaction: TransactionEntity,
     category: CategoryEntity?,
+    subcategory: SubcategoryEntity?,
     onEdit: () -> Unit,
     onDeleteRequested: () -> Unit
 ) {
@@ -242,6 +245,7 @@ private fun TransactionRow(
                 val title = category?.name ?: "Uncategorized"
                 Text(title, fontWeight = FontWeight.SemiBold)
                 val subParts = mutableListOf(formatDateLong(transaction.date))
+                subcategory?.let { subParts.add(it.name) }
                 if (transaction.type == TransactionType.EXPENSE) transaction.paymentMethod?.let { subParts.add(it) }
                 if (transaction.note.isNotBlank()) subParts.add(transaction.note)
                 Text(subParts.joinToString(" · "), color = colors.muted, style = MaterialTheme.typography.bodyMedium)

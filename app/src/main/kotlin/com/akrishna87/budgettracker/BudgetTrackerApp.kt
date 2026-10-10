@@ -20,6 +20,7 @@ class BudgetTrackerApp : Application() {
         val database = AppDatabase.getInstance(this)
         repository = BudgetRepository(
             database.categoryDao(),
+            database.subcategoryDao(),
             database.transactionDao(),
             database.recurringExpenseDao()
         )
