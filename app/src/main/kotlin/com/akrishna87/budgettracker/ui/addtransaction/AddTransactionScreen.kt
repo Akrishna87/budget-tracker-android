@@ -19,6 +19,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ArrowCircleDown
 import androidx.compose.material.icons.outlined.ArrowCircleUp
 import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.TrendingUp
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -45,7 +46,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.akrishna87.budgettracker.data.db.CategoryEntity
-import com.akrishna87.budgettracker.data.db.TransactionType
 import com.akrishna87.budgettracker.ui.components.categoryIcon
 import com.akrishna87.budgettracker.ui.theme.BudgetTheme
 
@@ -88,9 +88,9 @@ fun AddTransactionScreen(
         }
 
         item {
-            TypeToggle(
-                selected = draft.type,
-                onSelect = viewModel::setType
+            KindToggle(
+                selected = draft.kind,
+                onSelect = viewModel::setKind
             )
         }
 
@@ -108,17 +108,43 @@ fun AddTransactionScreen(
             )
         }
 
+        val kindAccentColor = when (draft.kind) {
+            EntryKind.INCOME -> colors.income
+            EntryKind.EXPENSE -> colors.expense
+            EntryKind.INVESTMENT -> colors.accentSecondary
+        }
+        val kindAccentOnColor = when (draft.kind) {
+            EntryKind.INCOME -> colors.accentOnColor
+            EntryKind.EXPENSE -> Color(0xFF3A1400)
+            EntryKind.INVESTMENT -> colors.accentOnColor
+        }
+        val categoriesForKind = state.categories.filter {
+            when (draft.kind) {
+                EntryKind.INCOME -> true
+                EntryKind.EXPENSE -> !it.isInvestment
+                EntryKind.INVESTMENT -> it.isInvestment
+            }
+        }
+
         item {
             Column {
                 Text("Category (tap one)", style = MaterialTheme.typography.labelLarge, color = colors.muted)
                 Spacer(Modifier.height(8.dp))
-                CategoryChipFlow(
-                    categories = state.categories,
-                    selected = draft.categoryId,
-                    onSelect = viewModel::setCategory,
-                    accentColor = if (draft.type == TransactionType.INCOME) colors.income else colors.expense,
-                    accentOnColor = if (draft.type == TransactionType.INCOME) colors.accentOnColor else Color(0xFF3A1400)
-                )
+                if (categoriesForKind.isEmpty()) {
+                    Text(
+                        "No investment categories yet. Mark one in Settings.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = colors.muted
+                    )
+                } else {
+                    CategoryChipFlow(
+                        categories = categoriesForKind,
+                        selected = draft.categoryId,
+                        onSelect = viewModel::setCategory,
+                        accentColor = kindAccentColor,
+                        accentOnColor = kindAccentOnColor
+                    )
+                }
             }
         }
 
@@ -132,14 +158,14 @@ fun AddTransactionScreen(
                         items = subcategoriesForCategory.map { it.id to it.name },
                         selected = draft.subcategoryId,
                         onSelect = { id -> viewModel.setSubcategory(if (draft.subcategoryId == id) null else id) },
-                        accentColor = if (draft.type == TransactionType.INCOME) colors.income else colors.expense,
-                        accentOnColor = if (draft.type == TransactionType.INCOME) colors.accentOnColor else Color(0xFF3A1400)
+                        accentColor = kindAccentColor,
+                        accentOnColor = kindAccentOnColor
                     )
                 }
             }
         }
 
-        if (draft.type == TransactionType.EXPENSE) {
+        if (draft.kind != EntryKind.INCOME) {
             item {
                 Column {
                     Text("Payment method (tap one)", style = MaterialTheme.typography.labelLarge, color = colors.muted)
@@ -148,8 +174,8 @@ fun AddTransactionScreen(
                         items = state.paymentMethods.map { it to it },
                         selected = draft.paymentMethod,
                         onSelect = viewModel::setPaymentMethod,
-                        accentColor = colors.expense,
-                        accentOnColor = Color(0xFF3A1400)
+                        accentColor = kindAccentColor,
+                        accentOnColor = kindAccentOnColor
                     )
                 }
             }
@@ -186,14 +212,20 @@ fun AddTransactionScreen(
                 onClick = viewModel::save,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text(if (draft.id != null) "Save changes" else if (draft.type == TransactionType.INCOME) "Add income" else "Add expense")
+                Text(
+                    if (draft.id != null) "Save changes" else when (draft.kind) {
+                        EntryKind.INCOME -> "Add income"
+                        EntryKind.EXPENSE -> "Add expense"
+                        EntryKind.INVESTMENT -> "Add investment"
+                    }
+                )
             }
         }
     }
 }
 
 @Composable
-private fun TypeToggle(selected: TransactionType, onSelect: (TransactionType) -> Unit) {
+private fun KindToggle(selected: EntryKind, onSelect: (EntryKind) -> Unit) {
     val colors = BudgetTheme.colors
     Card(
         colors = CardDefaults.cardColors(containerColor = colors.surfaceWell),
@@ -203,17 +235,24 @@ private fun TypeToggle(selected: TransactionType, onSelect: (TransactionType) ->
             ToggleButton(
                 label = "Income",
                 icon = Icons.Outlined.ArrowCircleUp,
-                active = selected == TransactionType.INCOME,
+                active = selected == EntryKind.INCOME,
                 activeColor = colors.income,
                 modifier = Modifier.weight(1f)
-            ) { onSelect(TransactionType.INCOME) }
+            ) { onSelect(EntryKind.INCOME) }
             ToggleButton(
                 label = "Expense",
                 icon = Icons.Outlined.ArrowCircleDown,
-                active = selected == TransactionType.EXPENSE,
+                active = selected == EntryKind.EXPENSE,
                 activeColor = colors.expense,
                 modifier = Modifier.weight(1f)
-            ) { onSelect(TransactionType.EXPENSE) }
+            ) { onSelect(EntryKind.EXPENSE) }
+            ToggleButton(
+                label = "Investment",
+                icon = Icons.Outlined.TrendingUp,
+                active = selected == EntryKind.INVESTMENT,
+                activeColor = colors.accentSecondary,
+                modifier = Modifier.weight(1f)
+            ) { onSelect(EntryKind.INVESTMENT) }
         }
     }
 }

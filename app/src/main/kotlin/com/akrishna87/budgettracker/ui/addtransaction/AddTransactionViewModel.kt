@@ -18,9 +18,21 @@ import java.util.UUID
 
 val DEFAULT_PAYMENT_METHODS = listOf("Cash", "Card", "UPI", "Bank Transfer", "Other")
 
+/**
+ * What the user picked on the add-entry toggle. INVESTMENT is still stored
+ * as an EXPENSE transaction (see [TransactionDraft.type]) - it only narrows
+ * which categories are offered, to the ones marked "is this an investment
+ * category?" in Settings.
+ */
+enum class EntryKind {
+    INCOME,
+    EXPENSE,
+    INVESTMENT
+}
+
 data class TransactionDraft(
     val id: String? = null,
-    val type: TransactionType = TransactionType.EXPENSE,
+    val kind: EntryKind = EntryKind.EXPENSE,
     val amount: String = "",
     val date: String = todayKey(),
     val categoryId: String? = null,
@@ -28,7 +40,9 @@ data class TransactionDraft(
     val paymentMethod: String? = null,
     val note: String = "",
     val showMore: Boolean = false
-)
+) {
+    val type: TransactionType get() = if (kind == EntryKind.INCOME) TransactionType.INCOME else TransactionType.EXPENSE
+}
 
 data class AddTransactionUiState(
     val draft: TransactionDraft = TransactionDraft(),
@@ -54,7 +68,9 @@ class AddTransactionViewModel(private val repository: BudgetRepository) : ViewMo
             repository.observeCategories().collect { cats ->
                 categories.value = cats
                 if (draft.value.categoryId == null && cats.isNotEmpty()) {
-                    draft.update { it.copy(categoryId = cats.first().id) }
+                    draft.update {
+                        it.copy(categoryId = categoriesForKind(it.kind, cats).firstOrNull()?.id ?: cats.first().id)
+                    }
                 }
                 pushState()
             }
@@ -79,8 +95,11 @@ class AddTransactionViewModel(private val repository: BudgetRepository) : ViewMo
         viewModelScope.launch {
             val last = repository.observeMostRecentExpense().first()
             if (last != null) {
+                val isInvestmentCategory = repository.observeCategories().first()
+                    .find { it.id == last.categoryId }?.isInvestment == true
                 draft.update {
                     it.copy(
+                        kind = if (isInvestmentCategory) EntryKind.INVESTMENT else EntryKind.EXPENSE,
                         categoryId = last.categoryId ?: it.categoryId,
                         subcategoryId = last.subcategoryId,
                         paymentMethod = last.paymentMethod
@@ -88,6 +107,14 @@ class AddTransactionViewModel(private val repository: BudgetRepository) : ViewMo
                 }
             }
             pushState()
+        }
+    }
+
+    private fun categoriesForKind(kind: EntryKind, cats: List<CategoryEntity> = categories.value): List<CategoryEntity> {
+        return when (kind) {
+            EntryKind.INCOME -> cats
+            EntryKind.EXPENSE -> cats.filter { !it.isInvestment }
+            EntryKind.INVESTMENT -> cats.filter { it.isInvestment }
         }
     }
 
@@ -103,18 +130,24 @@ class AddTransactionViewModel(private val repository: BudgetRepository) : ViewMo
 
     fun startNew() {
         savedFlag.value = false
+        val lastKind = draft.value.kind
         val lastCategory = draft.value.categoryId
         val lastSubcategory = draft.value.subcategoryId
         val lastPayment = draft.value.paymentMethod
-        draft.value = TransactionDraft(categoryId = lastCategory, subcategoryId = lastSubcategory, paymentMethod = lastPayment)
+        draft.value = TransactionDraft(kind = lastKind, categoryId = lastCategory, subcategoryId = lastSubcategory, paymentMethod = lastPayment)
         pushState()
     }
 
     fun loadForEdit(transaction: TransactionEntity) {
         savedFlag.value = false
+        val kind = when {
+            transaction.type == TransactionType.INCOME -> EntryKind.INCOME
+            categories.value.find { it.id == transaction.categoryId }?.isInvestment == true -> EntryKind.INVESTMENT
+            else -> EntryKind.EXPENSE
+        }
         draft.value = TransactionDraft(
             id = transaction.id,
-            type = transaction.type,
+            kind = kind,
             amount = formatAmountForEdit(transaction.amount),
             date = transaction.date,
             categoryId = transaction.categoryId,
@@ -130,8 +163,12 @@ class AddTransactionViewModel(private val repository: BudgetRepository) : ViewMo
         return if (amount == amount.toLong().toDouble()) amount.toLong().toString() else amount.toString()
     }
 
-    fun setType(type: TransactionType) {
-        draft.update { it.copy(type = type) }
+    fun setKind(kind: EntryKind) {
+        draft.update { current ->
+            val matching = categoriesForKind(kind)
+            val categoryId = if (matching.any { it.id == current.categoryId }) current.categoryId else matching.firstOrNull()?.id
+            current.copy(kind = kind, categoryId = categoryId, subcategoryId = null)
+        }
         pushState()
     }
 
