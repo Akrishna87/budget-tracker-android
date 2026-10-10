@@ -63,6 +63,7 @@ fun DashboardScreen(
                 totalIncome = state.totalIncome,
                 totalInvestment = state.totalInvestment,
                 totalPlainExpense = state.totalPlainExpense,
+                net = state.net,
                 onPrevMonth = { viewModel.selectMonth(shiftMonthKey(state.selectedMonth, -1)) },
                 onNextMonth = { viewModel.selectMonth(shiftMonthKey(state.selectedMonth, 1)) },
                 onOpenIncome = onOpenIncome,
@@ -102,6 +103,7 @@ private fun MonthSummaryCard(
     totalIncome: Double,
     totalInvestment: Double,
     totalPlainExpense: Double,
+    net: Double,
     onPrevMonth: () -> Unit,
     onNextMonth: () -> Unit,
     onOpenIncome: () -> Unit,
@@ -145,6 +147,13 @@ private fun MonthSummaryCard(
                 modifier = Modifier.weight(1f).clickable(onClick = onOpenExpenses)
             )
         }
+        Spacer(Modifier.height(10.dp))
+        SummaryStat(
+            label = "Left",
+            value = net,
+            color = if (net >= 0) colors.income else colors.danger,
+            modifier = Modifier.fillMaxWidth()
+        )
     }
 }
 

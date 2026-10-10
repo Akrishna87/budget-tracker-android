@@ -65,17 +65,26 @@ class DashboardViewModel(private val repository: BudgetRepository) : ViewModel()
             categories.find { c -> c.id == it.categoryId }?.isInvestment != true
         }
 
+        // A category used only for logging income (never an expense, across
+        // all history, not just this month) has no place in a spending
+        // breakdown - it'd only ever show ₹0 there since this panel is built
+        // from expense activity. The INCOME stat above already covers it.
+        val categoryIdsEverExpensed = transactions.filter { it.type == TransactionType.EXPENSE }.mapNotNull { it.categoryId }.toSet()
+        val categoryIdsEverIncome = transactions.filter { it.type == TransactionType.INCOME }.mapNotNull { it.categoryId }.toSet()
+        val incomeOnlyCategoryIds = categoryIdsEverIncome - categoryIdsEverExpensed
+        val spendCategories = categories.filterNot { it.id in incomeOnlyCategoryIds }
+
         DashboardUiState(
             selectedMonth = month,
             totalIncome = incomeTransactions.sumOf { it.amount },
             totalExpense = expenseTransactions.sumOf { it.amount },
             totalInvestment = investmentTransactions.sumOf { it.amount },
             totalPlainExpense = plainExpenseTransactions.sumOf { it.amount },
-            // Every category, income/investment/expense alike, in one flat
-            // list keyed to how much moved through it as an expense this
-            // month - a single simple "Categories" section instead of three
-            // separate by-type panels.
-            categoryTotals = totalsByCategory(expenseTransactions, categories)
+            // Every spending category (investment or plain expense alike) in
+            // one flat list keyed to how much moved through it this month -
+            // a single simple "Categories" section instead of three separate
+            // by-type panels.
+            categoryTotals = totalsByCategory(expenseTransactions, spendCategories)
         )
     }.combine(repository.observeLoans()) { state, loans ->
         state.copy(loans = loans, totalLoanOutstanding = loans.sumOf { it.outstandingAmount })
