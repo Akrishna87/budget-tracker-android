@@ -3,26 +3,23 @@ package com.akrishna87.budgettracker.ui.dashboard
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import com.akrishna87.budgettracker.ui.components.ElevatedPanel
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.CheckCircle
-import androidx.compose.material.icons.outlined.Repeat
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
@@ -31,6 +28,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.akrishna87.budgettracker.data.db.LoanEntity
@@ -58,19 +56,8 @@ fun DashboardScreen(
             .fillMaxSize()
             .padding(horizontal = 16.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
-        contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 16.dp)
+        contentPadding = PaddingValues(vertical = 16.dp)
     ) {
-        state.mostRecentExpense?.let { lastExpense ->
-            item {
-                RepeatLastExpenseCard(
-                    lastExpense = lastExpense,
-                    justRepeatedId = state.justRepeatedId,
-                    onRepeat = viewModel::repeatLastExpense,
-                    onUndo = viewModel::undoRepeat
-                )
-            }
-        }
-
         item {
             MonthSummaryCard(
                 monthKey = state.selectedMonth,
@@ -91,112 +78,19 @@ fun DashboardScreen(
 
         item {
             ElevatedPanel {
-                Text(
-                    "Income by category",
-                    style = MaterialTheme.typography.titleMedium
-                )
+                Text("Categories", style = MaterialTheme.typography.titleMedium)
                 Spacer(Modifier.height(10.dp))
-                if (state.incomeByCategory.isEmpty()) {
+                if (state.categoryTotals.isEmpty()) {
                     Text(
-                        "No income logged for this month yet.",
+                        "No categories yet. Add one in Settings.",
                         color = colors.muted,
                         style = MaterialTheme.typography.bodyMedium
                     )
                 } else {
-                    state.incomeByCategory.forEach { entry ->
-                        IncomeCategoryRow(entry, onClick = { onOpenCategory(entry.category.id) })
+                    state.categoryTotals.forEach { entry ->
+                        CategoryRow(entry, onClick = { onOpenCategory(entry.category.id) })
                         Spacer(Modifier.height(12.dp))
                     }
-                }
-            }
-        }
-
-        item {
-            ElevatedPanel {
-                Text(
-                    "Investments by category",
-                    style = MaterialTheme.typography.titleMedium
-                )
-                Spacer(Modifier.height(10.dp))
-                if (state.investmentByCategory.isEmpty()) {
-                    Text(
-                        "No investments logged for this month yet.",
-                        color = colors.muted,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                } else {
-                    state.investmentByCategory.forEach { entry ->
-                        InvestmentCategoryRow(entry, onClick = { onOpenCategory(entry.category.id) })
-                        Spacer(Modifier.height(12.dp))
-                    }
-                }
-            }
-        }
-
-        item {
-            ElevatedPanel {
-                Text(
-                    "Expense by category",
-                    style = MaterialTheme.typography.titleMedium
-                )
-                Spacer(Modifier.height(10.dp))
-                if (state.expenseByCategory.isEmpty()) {
-                    Text(
-                        "No expenses logged for this month yet.",
-                        color = colors.muted,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                } else {
-                    state.expenseByCategory.forEach { entry ->
-                        ExpenseCategoryRow(entry, onClick = { onOpenCategory(entry.category.id) })
-                        Spacer(Modifier.height(12.dp))
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun RepeatLastExpenseCard(
-    lastExpense: com.akrishna87.budgettracker.data.db.TransactionEntity,
-    justRepeatedId: String?,
-    onRepeat: () -> Unit,
-    onUndo: (String) -> Unit
-) {
-    val colors = BudgetTheme.colors
-    ElevatedPanel(contentPadding = 16) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            if (justRepeatedId == lastExpense.id) {
-                IconBadge(icon = Icons.Outlined.CheckCircle, tint = colors.income)
-                Column(Modifier.widthIn(min = 1.dp)) {
-                    Text(
-                        "Added " + formatMoney(lastExpense.amount),
-                        color = colors.income,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
-                Spacer(Modifier.widthIn(min = 1.dp))
-                OutlinedButton(onClick = { onUndo(lastExpense.id) }) {
-                    Text("Undo")
-                }
-            } else {
-                IconBadge(icon = Icons.Outlined.Repeat, tint = colors.expense)
-                Column(Modifier.weight(1f)) {
-                    Text("Repeat last expense", fontWeight = FontWeight.Bold)
-                    Text(
-                        formatMoney(lastExpense.amount) +
-                            (lastExpense.paymentMethod?.let { " · $it" } ?: ""),
-                        color = colors.muted,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                }
-                Button(onClick = onRepeat) {
-                    Text("Log it again")
                 }
             }
         }
@@ -256,7 +150,7 @@ private fun MonthSummaryCard(
 }
 
 @Composable
-private fun SummaryStat(label: String, value: Double, color: androidx.compose.ui.graphics.Color, modifier: Modifier = Modifier) {
+private fun SummaryStat(label: String, value: Double, color: Color, modifier: Modifier = Modifier) {
     val colors = BudgetTheme.colors
     Card(
         modifier = modifier,
@@ -319,18 +213,24 @@ private fun LoanRow(loan: LoanEntity) {
     }
 }
 
+/**
+ * One row per category, regardless of income/investment/expense - a single
+ * flat list (budget progress included when the category has one set) rather
+ * than three separate panels repeating the same categories by type.
+ */
 @Composable
-private fun ExpenseCategoryRow(entry: CategoryTotal, onClick: () -> Unit) {
+private fun CategoryRow(entry: CategoryTotal, onClick: () -> Unit) {
     val colors = BudgetTheme.colors
     val category = entry.category
+    val tint = if (category.isInvestment) colors.accentSecondary else colors.expense
     val budget = category.budget
     val spent = entry.amount
     val fraction = if (budget > 0) (spent / budget).toFloat().coerceIn(0f, 1f) else if (spent > 0) 1f else 0f
     val barColor = when {
-        budget <= 0 -> MaterialTheme.colorScheme.primary
+        budget <= 0 -> tint
         spent > budget -> colors.danger
         spent >= budget * 0.8 -> colors.warn
-        else -> MaterialTheme.colorScheme.primary
+        else -> tint
     }
 
     Column(Modifier.clickable(onClick = onClick)) {
@@ -340,7 +240,7 @@ private fun ExpenseCategoryRow(entry: CategoryTotal, onClick: () -> Unit) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                IconBadge(icon = categoryIcon(category), small = true)
+                IconBadge(icon = categoryIcon(category), tint = tint, small = true)
                 Text(category.name, fontWeight = FontWeight.SemiBold)
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -352,7 +252,7 @@ private fun ExpenseCategoryRow(entry: CategoryTotal, onClick: () -> Unit) {
             }
         }
         Spacer(Modifier.height(6.dp))
-        androidx.compose.material3.LinearProgressIndicator(
+        LinearProgressIndicator(
             progress = { fraction },
             modifier = Modifier
                 .fillMaxWidth()
@@ -360,47 +260,5 @@ private fun ExpenseCategoryRow(entry: CategoryTotal, onClick: () -> Unit) {
             color = barColor,
             trackColor = colors.surfaceWell
         )
-    }
-}
-
-@Composable
-private fun IncomeCategoryRow(entry: CategoryTotal, onClick: () -> Unit) {
-    val colors = BudgetTheme.colors
-    val category = entry.category
-
-    Row(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            IconBadge(icon = categoryIcon(category), tint = colors.income, small = true)
-            Text(category.name, fontWeight = FontWeight.SemiBold)
-        }
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(formatMoney(entry.amount), color = colors.income, style = MaterialTheme.typography.bodyMedium)
-            Icon(Icons.Filled.ChevronRight, contentDescription = null, tint = colors.muted)
-        }
-    }
-}
-
-@Composable
-private fun InvestmentCategoryRow(entry: CategoryTotal, onClick: () -> Unit) {
-    val colors = BudgetTheme.colors
-    val category = entry.category
-
-    Row(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            IconBadge(icon = categoryIcon(category), tint = colors.accentSecondary, small = true)
-            Text(category.name, fontWeight = FontWeight.SemiBold)
-        }
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(formatMoney(entry.amount), color = colors.accentSecondary, style = MaterialTheme.typography.bodyMedium)
-            Icon(Icons.Filled.ChevronRight, contentDescription = null, tint = colors.muted)
-        }
     }
 }
