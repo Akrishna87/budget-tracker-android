@@ -3,10 +3,12 @@ package com.akrishna87.budgettracker.ui.addtransaction
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.akrishna87.budgettracker.data.db.CategoryEntity
+import com.akrishna87.budgettracker.data.db.RecurringExpenseEntity
 import com.akrishna87.budgettracker.data.db.SubcategoryEntity
 import com.akrishna87.budgettracker.data.db.TransactionEntity
 import com.akrishna87.budgettracker.data.db.TransactionType
 import com.akrishna87.budgettracker.data.repository.BudgetRepository
+import com.akrishna87.budgettracker.util.monthKeyOfDate
 import com.akrishna87.budgettracker.util.todayKey
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -40,7 +42,8 @@ data class TransactionDraft(
     val subcategoryId: String? = null,
     val paymentMethod: String? = null,
     val note: String = "",
-    val showMore: Boolean = false
+    val showMore: Boolean = false,
+    val isRecurring: Boolean = false
 ) {
     val type: TransactionType get() = if (kind == EntryKind.INCOME) TransactionType.INCOME else TransactionType.EXPENSE
 }
@@ -157,7 +160,13 @@ class AddTransactionViewModel(private val repository: BudgetRepository) : ViewMo
     fun setKind(kind: EntryKind) {
         // The category list is the same regardless of kind now, so switching
         // kind leaves whatever category/subcategory was already picked alone.
-        draft.update { it.copy(kind = kind) }
+        // Recurring only applies to expenses/investments, so drop it for income.
+        draft.update { it.copy(kind = kind, isRecurring = if (kind == EntryKind.INCOME) false else it.isRecurring) }
+        pushState()
+    }
+
+    fun setRecurring(recurring: Boolean) {
+        draft.update { it.copy(isRecurring = recurring) }
         pushState()
     }
 
@@ -216,6 +225,19 @@ class AddTransactionViewModel(private val repository: BudgetRepository) : ViewMo
                 paymentMethod = if (current.type == TransactionType.EXPENSE) current.paymentMethod else null
             )
             repository.upsertTransaction(entry)
+            if (current.isRecurring && current.kind != EntryKind.INCOME) {
+                val dueDay = current.date.substring(8, 10).toInt().coerceIn(1, 28)
+                repository.upsertRecurringExpense(
+                    RecurringExpenseEntity(
+                        id = UUID.randomUUID().toString(),
+                        name = current.note.ifBlank { "Recurring expense" },
+                        amount = amountValue,
+                        categoryId = current.categoryId,
+                        dueDayOfMonth = dueDay,
+                        lastGeneratedMonth = monthKeyOfDate(current.date)
+                    )
+                )
+            }
             savedFlag.value = true
             pushState()
         }

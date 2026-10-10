@@ -1,5 +1,6 @@
 package com.akrishna87.budgettracker.ui.addtransaction
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -24,6 +25,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
@@ -167,6 +169,15 @@ fun AddTransactionScreen(
             }
         }
 
+        if (draft.kind != EntryKind.INCOME) {
+            item {
+                RecurringToggle(
+                    checked = draft.isRecurring,
+                    onCheckedChange = viewModel::setRecurring
+                )
+            }
+        }
+
         if (!draft.showMore) {
             item {
                 TextButton(onClick = viewModel::showMoreDetails) {
@@ -239,6 +250,36 @@ private fun KindToggle(selected: EntryKind, onSelect: (EntryKind) -> Unit) {
                 activeColor = colors.accentSecondary,
                 modifier = Modifier.weight(1f)
             ) { onSelect(EntryKind.INVESTMENT) }
+        }
+    }
+}
+
+@Composable
+private fun RecurringToggle(checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+    val colors = BudgetTheme.colors
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onCheckedChange(!checked) },
+        colors = CardDefaults.cardColors(containerColor = colors.surfaceWell),
+        shape = RoundedCornerShape(14.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Checkbox(checked = checked, onCheckedChange = onCheckedChange)
+            Spacer(Modifier.width(8.dp))
+            Column {
+                Text("Recurring", fontWeight = FontWeight.SemiBold)
+                Text(
+                    "Logs again automatically on this day every month going forward",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = colors.muted
+                )
+            }
         }
     }
 }

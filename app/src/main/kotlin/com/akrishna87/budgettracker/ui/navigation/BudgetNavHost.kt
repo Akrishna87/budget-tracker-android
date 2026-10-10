@@ -47,8 +47,6 @@ import com.akrishna87.budgettracker.ui.history.HistoryViewModel
 import com.akrishna87.budgettracker.ui.history.TypeFilter
 import com.akrishna87.budgettracker.ui.monthly.MonthlyScreen
 import com.akrishna87.budgettracker.ui.monthly.MonthlyViewModel
-import com.akrishna87.budgettracker.ui.recurring.RecurringScreen
-import com.akrishna87.budgettracker.ui.recurring.RecurringViewModel
 import com.akrishna87.budgettracker.ui.settings.SettingsScreen
 import com.akrishna87.budgettracker.ui.settings.SettingsViewModel
 import com.akrishna87.budgettracker.ui.theme.Accent
@@ -194,10 +192,6 @@ fun BudgetNavHost(factory: BudgetViewModelFactory) {
                                     }
                                 }
                             )
-                        }
-                        Screen.Recurring -> {
-                            val viewModel: RecurringViewModel = viewModel(factory = factory)
-                            RecurringScreen(viewModel)
                         }
                         Screen.Monthly -> {
                             val viewModel: MonthlyViewModel = viewModel(factory = factory)

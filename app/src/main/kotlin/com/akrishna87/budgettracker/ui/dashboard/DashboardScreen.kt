@@ -149,7 +149,7 @@ private fun MonthSummaryCard(
         }
         Spacer(Modifier.height(10.dp))
         SummaryStat(
-            label = "Left",
+            label = "Savings",
             value = net,
             color = if (net >= 0) colors.income else colors.danger,
             modifier = Modifier.fillMaxWidth()

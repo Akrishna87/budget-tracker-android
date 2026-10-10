@@ -2,6 +2,7 @@ package com.akrishna87.budgettracker.ui.monthly
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -31,6 +32,7 @@ import com.akrishna87.budgettracker.ui.components.EmptyState
 import com.akrishna87.budgettracker.ui.components.IconBadge
 import com.akrishna87.budgettracker.ui.components.categoryIcon
 import com.akrishna87.budgettracker.ui.theme.BudgetTheme
+import com.akrishna87.budgettracker.util.formatMoney
 import com.akrishna87.budgettracker.util.monthLabel
 import com.akrishna87.budgettracker.util.shiftMonthKey
 
@@ -97,13 +99,19 @@ private fun MonthlyTaskCard(row: MonthlyTaskRow, onToggle: (Boolean) -> Unit) {
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             IconBadge(icon = categoryIcon(category), tint = tint, small = true)
-            Text(
-                category.name,
-                fontWeight = FontWeight.SemiBold,
-                textDecoration = if (row.checked) TextDecoration.LineThrough else TextDecoration.None,
-                color = if (row.checked) colors.muted else MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.weight(1f)
-            )
+            Column(Modifier.weight(1f)) {
+                Text(
+                    category.name,
+                    fontWeight = FontWeight.SemiBold,
+                    textDecoration = if (row.checked) TextDecoration.LineThrough else TextDecoration.None,
+                    color = if (row.checked) colors.muted else MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    formatMoney(row.amount) + " this month",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = colors.muted
+                )
+            }
             Checkbox(checked = row.checked, onCheckedChange = onToggle)
         }
     }

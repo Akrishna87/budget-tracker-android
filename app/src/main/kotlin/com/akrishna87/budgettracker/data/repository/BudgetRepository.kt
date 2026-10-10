@@ -46,13 +46,9 @@ class BudgetRepository(
 
     suspend fun deleteTransaction(id: String) = transactionDao.deleteById(id)
 
-    fun observeRecurringExpenses(): Flow<List<RecurringExpenseEntity>> = recurringExpenseDao.observeAll()
-
     suspend fun getRecurringExpenses(): List<RecurringExpenseEntity> = recurringExpenseDao.getAll()
 
     suspend fun upsertRecurringExpense(expense: RecurringExpenseEntity) = recurringExpenseDao.upsert(expense)
-
-    suspend fun deleteRecurringExpense(expense: RecurringExpenseEntity) = recurringExpenseDao.delete(expense)
 
     fun observeLoans(): Flow<List<LoanEntity>> = loanDao.observeAll()
 
