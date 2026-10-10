@@ -1,5 +1,6 @@
 package com.akrishna87.budgettracker.ui.navigation
 
+import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -32,6 +33,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.NavBackStackEntry
 import com.akrishna87.budgettracker.data.db.TransactionEntity
 import com.akrishna87.budgettracker.ui.BudgetViewModelFactory
 import com.akrishna87.budgettracker.ui.addtransaction.AddTransactionScreen
@@ -49,6 +51,18 @@ import com.akrishna87.budgettracker.ui.settings.SettingsViewModel
 import com.akrishna87.budgettracker.ui.theme.Accent
 
 private const val TRANSITION_MS = 220
+private val bottomNavRoutes = Screen.bottomNavItems.map { it.route }.toSet()
+
+// Bottom-nav tabs aren't a linear stack (Recurring -> Dashboard jumps backward
+// past History), so sliding horizontally between them looks like a glitch
+// rather than motion with a clear direction. Tab-to-tab switches crossfade
+// instead; the slide stays for genuinely hierarchical pushes (Add, editing
+// from History).
+private fun AnimatedContentTransitionScope<NavBackStackEntry>.isBottomNavSwitch(): Boolean {
+    val from = initialState.destination.route
+    val to = targetState.destination.route
+    return from in bottomNavRoutes && to in bottomNavRoutes
+}
 
 @Composable
 fun BudgetNavHost(factory: BudgetViewModelFactory) {
@@ -126,12 +140,20 @@ fun BudgetNavHost(factory: BudgetViewModelFactory) {
             startDestination = Screen.Dashboard.route,
             modifier = Modifier.padding(padding),
             enterTransition = {
-                fadeIn(tween(TRANSITION_MS)) + slideInHorizontally(tween(TRANSITION_MS)) { it / 10 }
+                if (isBottomNavSwitch()) {
+                    fadeIn(tween(TRANSITION_MS))
+                } else {
+                    fadeIn(tween(TRANSITION_MS)) + slideInHorizontally(tween(TRANSITION_MS)) { it / 10 }
+                }
             },
             exitTransition = { fadeOut(tween(TRANSITION_MS)) },
             popEnterTransition = { fadeIn(tween(TRANSITION_MS)) },
             popExitTransition = {
-                fadeOut(tween(TRANSITION_MS)) + slideOutHorizontally(tween(TRANSITION_MS)) { it / 10 }
+                if (isBottomNavSwitch()) {
+                    fadeOut(tween(TRANSITION_MS))
+                } else {
+                    fadeOut(tween(TRANSITION_MS)) + slideOutHorizontally(tween(TRANSITION_MS)) { it / 10 }
+                }
             }
         ) {
             composable(Screen.Dashboard.route) {
