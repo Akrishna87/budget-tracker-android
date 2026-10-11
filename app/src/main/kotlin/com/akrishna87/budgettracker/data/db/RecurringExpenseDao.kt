@@ -15,6 +15,9 @@ interface RecurringExpenseDao {
     @Query("SELECT * FROM recurring_expenses")
     suspend fun getAll(): List<RecurringExpenseEntity>
 
+    @Query("SELECT * FROM recurring_expenses WHERE id = :id")
+    suspend fun getById(id: String): RecurringExpenseEntity?
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(expense: RecurringExpenseEntity)
 

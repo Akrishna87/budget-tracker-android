@@ -151,6 +151,13 @@ class AddTransactionViewModel(private val repository: BudgetRepository) : ViewMo
             showMore = true
         )
         pushState()
+        viewModelScope.launch {
+            val isAlreadyRecurring = repository.getRecurringExpenseById(transaction.id) != null
+            if (isAlreadyRecurring) {
+                draft.update { it.copy(isRecurring = true) }
+                pushState()
+            }
+        }
     }
 
     private fun formatAmountForEdit(amount: Double): String {
@@ -214,8 +221,9 @@ class AddTransactionViewModel(private val repository: BudgetRepository) : ViewMo
         if (amountValue == null || amountValue <= 0.0) return
 
         viewModelScope.launch {
+            val entryId = current.id ?: UUID.randomUUID().toString()
             val entry = TransactionEntity(
-                id = current.id ?: UUID.randomUUID().toString(),
+                id = entryId,
                 type = current.type,
                 amount = amountValue,
                 date = current.date,
@@ -225,11 +233,16 @@ class AddTransactionViewModel(private val repository: BudgetRepository) : ViewMo
                 paymentMethod = if (current.type == TransactionType.EXPENSE) current.paymentMethod else null
             )
             repository.upsertTransaction(entry)
+
+            // The recurring record's id is the transaction's own id, so
+            // re-saving this transaction updates it in place instead of
+            // piling up duplicates, and unchecking it below can find and
+            // remove the exact right row.
             if (current.isRecurring && current.kind != EntryKind.INCOME) {
                 val dueDay = current.date.substring(8, 10).toInt().coerceIn(1, 28)
                 repository.upsertRecurringExpense(
                     RecurringExpenseEntity(
-                        id = UUID.randomUUID().toString(),
+                        id = entryId,
                         name = current.note.ifBlank { "Recurring expense" },
                         amount = amountValue,
                         categoryId = current.categoryId,
@@ -237,6 +250,8 @@ class AddTransactionViewModel(private val repository: BudgetRepository) : ViewMo
                         lastGeneratedMonth = monthKeyOfDate(current.date)
                     )
                 )
+            } else {
+                repository.getRecurringExpenseById(entryId)?.let { repository.deleteRecurringExpense(it) }
             }
             savedFlag.value = true
             pushState()

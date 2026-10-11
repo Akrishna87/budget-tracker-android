@@ -19,6 +19,8 @@ data class MonthlyBreakdownItem(
     val id: String,
     val label: String,
     val amount: Double,
+    val checked: Boolean = false,
+    val isCheckable: Boolean = false,
     val isRecurringPreview: Boolean = false,
     val recurringDueDay: Int? = null
 )
@@ -27,7 +29,8 @@ data class MonthlyTaskRow(
     val category: CategoryEntity,
     val checked: Boolean,
     val amount: Double,
-    val breakdown: List<MonthlyBreakdownItem> = emptyList()
+    val breakdown: List<MonthlyBreakdownItem> = emptyList(),
+    val hasCheckableSubcategories: Boolean = false
 )
 
 data class MonthlyUiState(
@@ -62,7 +65,9 @@ class MonthlyViewModel(private val repository: BudgetRepository) : ViewModel() {
                         breakdown += MonthlyBreakdownItem(
                             id = subcategory.id,
                             label = subcategory.name,
-                            amount = transactionsBySubcategory[subcategory.id]?.sumOf { it.amount } ?: 0.0
+                            amount = transactionsBySubcategory[subcategory.id]?.sumOf { it.amount } ?: 0.0,
+                            checked = subcategory.id in checkedIds,
+                            isCheckable = true
                         )
                     }
                     val uncategorized = transactionsBySubcategory[null]?.sumOf { it.amount } ?: 0.0
@@ -88,7 +93,14 @@ class MonthlyViewModel(private val repository: BudgetRepository) : ViewModel() {
                     }
                 }
 
-                MonthlyTaskRow(category, category.id in checkedIds, total, breakdown)
+                val checkableItems = breakdown.filter { it.isCheckable }
+                val masterChecked = if (checkableItems.isNotEmpty()) {
+                    checkableItems.all { it.checked }
+                } else {
+                    category.id in checkedIds
+                }
+
+                MonthlyTaskRow(category, masterChecked, total, breakdown, hasCheckableSubcategories = checkableItems.isNotEmpty())
             }
 
             MonthlyUiState(selectedMonth = month, rows = rows)
@@ -103,9 +115,19 @@ class MonthlyViewModel(private val repository: BudgetRepository) : ViewModel() {
         selectedMonth.value = month
     }
 
-    fun setChecked(categoryId: String, checked: Boolean) {
+    /** Toggles a single checkable row - a category with no subcategories, or one subcategory. */
+    fun setChecked(targetId: String, checked: Boolean) {
         viewModelScope.launch {
-            repository.setMonthlyChecked(categoryId, selectedMonth.value, checked)
+            repository.setMonthlyChecked(targetId, selectedMonth.value, checked)
+        }
+    }
+
+    /** Tapping a category's own checkbox when it has subcategories ticks/unticks all of them at once. */
+    fun setAllSubcategoriesChecked(subcategoryIds: List<String>, checked: Boolean) {
+        viewModelScope.launch {
+            subcategoryIds.forEach { subcategoryId ->
+                repository.setMonthlyChecked(subcategoryId, selectedMonth.value, checked)
+            }
         }
     }
 }

@@ -27,16 +27,21 @@ class BudgetRepository(
     suspend fun upsertCategory(category: CategoryEntity) = categoryDao.upsert(category)
 
     suspend fun deleteCategory(category: CategoryEntity) {
+        val subcategoryIds = subcategoryDao.getIdsByCategory(category.id)
         categoryDao.delete(category)
         subcategoryDao.deleteByCategory(category.id)
         monthlyCheckDao.deleteByCategory(category.id)
+        subcategoryIds.forEach { monthlyCheckDao.deleteByCategory(it) }
     }
 
     fun observeSubcategories(): Flow<List<SubcategoryEntity>> = subcategoryDao.observeAll()
 
     suspend fun upsertSubcategory(subcategory: SubcategoryEntity) = subcategoryDao.upsert(subcategory)
 
-    suspend fun deleteSubcategory(subcategory: SubcategoryEntity) = subcategoryDao.delete(subcategory)
+    suspend fun deleteSubcategory(subcategory: SubcategoryEntity) {
+        subcategoryDao.delete(subcategory)
+        monthlyCheckDao.deleteByCategory(subcategory.id)
+    }
 
     fun observeTransactions(): Flow<List<TransactionEntity>> = transactionDao.observeAll()
 
@@ -50,7 +55,11 @@ class BudgetRepository(
 
     suspend fun getRecurringExpenses(): List<RecurringExpenseEntity> = recurringExpenseDao.getAll()
 
+    suspend fun getRecurringExpenseById(id: String): RecurringExpenseEntity? = recurringExpenseDao.getById(id)
+
     suspend fun upsertRecurringExpense(expense: RecurringExpenseEntity) = recurringExpenseDao.upsert(expense)
+
+    suspend fun deleteRecurringExpense(expense: RecurringExpenseEntity) = recurringExpenseDao.delete(expense)
 
     fun observeLoans(): Flow<List<LoanEntity>> = loanDao.observeAll()
 
@@ -60,11 +69,16 @@ class BudgetRepository(
 
     fun observeMonthlyChecks(monthKey: String): Flow<List<MonthlyCheckEntity>> = monthlyCheckDao.observeForMonth(monthKey)
 
-    suspend fun setMonthlyChecked(categoryId: String, monthKey: String, checked: Boolean) {
+    /**
+     * [targetId] is a category id (for a category with no subcategories) or a
+     * subcategory id (for one of its subcategory rows) - stored in the same
+     * column either way, since the two id spaces never collide.
+     */
+    suspend fun setMonthlyChecked(targetId: String, monthKey: String, checked: Boolean) {
         if (checked) {
-            monthlyCheckDao.upsert(MonthlyCheckEntity(categoryId = categoryId, monthKey = monthKey))
+            monthlyCheckDao.upsert(MonthlyCheckEntity(categoryId = targetId, monthKey = monthKey))
         } else {
-            monthlyCheckDao.delete(categoryId, monthKey)
+            monthlyCheckDao.delete(targetId, monthKey)
         }
     }
 }

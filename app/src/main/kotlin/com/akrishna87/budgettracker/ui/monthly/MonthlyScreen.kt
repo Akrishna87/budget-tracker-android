@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.items
@@ -81,14 +82,24 @@ fun MonthlyScreen(viewModel: MonthlyViewModel) {
             }
         } else {
             items(state.rows, key = { it.category.id }) { row ->
-                MonthlyTaskCard(row = row, onToggle = { checked -> viewModel.setChecked(row.category.id, checked) })
+                MonthlyTaskCard(
+                    row = row,
+                    onToggleMaster = { checked ->
+                        if (row.hasCheckableSubcategories) {
+                            viewModel.setAllSubcategoriesChecked(row.breakdown.filter { it.isCheckable }.map { it.id }, checked)
+                        } else {
+                            viewModel.setChecked(row.category.id, checked)
+                        }
+                    },
+                    onToggleSub = { subcategoryId, checked -> viewModel.setChecked(subcategoryId, checked) }
+                )
             }
         }
     }
 }
 
 @Composable
-private fun MonthlyTaskCard(row: MonthlyTaskRow, onToggle: (Boolean) -> Unit) {
+private fun MonthlyTaskCard(row: MonthlyTaskRow, onToggleMaster: (Boolean) -> Unit, onToggleSub: (String, Boolean) -> Unit) {
     val colors = BudgetTheme.colors
     val category = row.category
     val tint = if (category.isInvestment) colors.accentSecondary else MaterialTheme.colorScheme.primary
@@ -98,7 +109,7 @@ private fun MonthlyTaskCard(row: MonthlyTaskRow, onToggle: (Boolean) -> Unit) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable(onClick = { onToggle(!row.checked) }),
+                    .clickable(onClick = { onToggleMaster(!row.checked) }),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
@@ -116,7 +127,7 @@ private fun MonthlyTaskCard(row: MonthlyTaskRow, onToggle: (Boolean) -> Unit) {
                         color = colors.muted
                     )
                 }
-                Checkbox(checked = row.checked, onCheckedChange = onToggle)
+                Checkbox(checked = row.checked, onCheckedChange = onToggleMaster)
             }
             if (row.breakdown.isNotEmpty()) {
                 HorizontalDivider(modifier = Modifier.padding(start = 40.dp, top = 10.dp, bottom = 10.dp), color = colors.surfaceWell)
@@ -124,7 +135,12 @@ private fun MonthlyTaskCard(row: MonthlyTaskRow, onToggle: (Boolean) -> Unit) {
                     modifier = Modifier.padding(start = 40.dp),
                     verticalArrangement = Arrangement.spacedBy(7.dp)
                 ) {
-                    row.breakdown.forEach { item -> BreakdownRow(item) }
+                    row.breakdown.forEach { item ->
+                        BreakdownRow(
+                            item = item,
+                            onToggle = if (item.isCheckable) { checked -> onToggleSub(item.id, checked) } else null
+                        )
+                    }
                 }
             }
         }
@@ -132,15 +148,22 @@ private fun MonthlyTaskCard(row: MonthlyTaskRow, onToggle: (Boolean) -> Unit) {
 }
 
 @Composable
-private fun BreakdownRow(item: MonthlyBreakdownItem) {
+private fun BreakdownRow(item: MonthlyBreakdownItem, onToggle: ((Boolean) -> Unit)?) {
     val colors = BudgetTheme.colors
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .let { if (onToggle != null) it.clickable { onToggle(!item.checked) } else it },
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text(item.label, style = MaterialTheme.typography.bodySmall, color = colors.muted)
+            Text(
+                item.label,
+                style = MaterialTheme.typography.bodySmall,
+                color = colors.muted,
+                textDecoration = if (item.checked) TextDecoration.LineThrough else TextDecoration.None
+            )
             if (item.isRecurringPreview) {
                 Surface(
                     shape = RoundedCornerShape(20.dp),
@@ -155,6 +178,15 @@ private fun BreakdownRow(item: MonthlyBreakdownItem) {
                 }
             }
         }
-        Text(formatMoney(item.amount), style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(formatMoney(item.amount), style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
+            if (onToggle != null) {
+                Checkbox(
+                    checked = item.checked,
+                    onCheckedChange = onToggle,
+                    modifier = Modifier.size(32.dp)
+                )
+            }
+        }
     }
 }

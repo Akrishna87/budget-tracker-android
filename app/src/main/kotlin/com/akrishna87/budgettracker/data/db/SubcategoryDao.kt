@@ -20,4 +20,7 @@ interface SubcategoryDao {
 
     @Query("DELETE FROM subcategories WHERE categoryId = :categoryId")
     suspend fun deleteByCategory(categoryId: String)
+
+    @Query("SELECT id FROM subcategories WHERE categoryId = :categoryId")
+    suspend fun getIdsByCategory(categoryId: String): List<String>
 }
